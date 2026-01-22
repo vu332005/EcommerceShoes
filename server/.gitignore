@@ -1,0 +1,23 @@
+# 1. Dependencies (Bắt buộc)
+node_modules/
+
+# 2. Environment Variables (BẢO MẬT - Không được quên)
+.env
+.env.*
+
+# 3. Build Output (Do dự án dùng TypeScript)
+dist/
+build/
+
+# 4. Logs & Debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 5. File thực thi & Hệ thống
+*.exe
+stripe.exe
+.DS_Store
+Thumbs.db
+

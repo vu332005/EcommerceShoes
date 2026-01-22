@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    /* 1. Cấu hình cơ bản */
+    "target": "es2016",          /* Fix lỗi: "An async function... requires Promise" */
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    
+    /* 2. Fix lỗi Decorator của TypeORM (Lỗi "Unable to resolve signature...") */
+    "experimentalDecorators": true, 
+    "emitDecoratorMetadata": true,
+
+    /* 3. Fix lỗi import thư viện cũ (Lỗi "has no default export") */
+    "esModuleInterop": true,     
+    "allowSyntheticDefaultImports": true,
+
+    /* 4. Các cấu hình an toàn khác */
+    "strict": true,
+    "strictPropertyInitialization": false, /* Tắt bắt buộc khởi tạo để dùng được với TypeORM Entity */
+    "skipLibCheck": true,        /* Bỏ qua check lỗi trong file .d.ts của thư viện */
+    "forceConsistentCasingInFileNames": true
+  },
+  "exclude": ["node_modules", "dist"]
+}

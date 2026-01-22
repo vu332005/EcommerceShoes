@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: giay_postgres_new_db # <--- Đổi tên container
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 123456 # <--- Đổi pass mới
+      POSTGRES_DB: shoes_shop_db
+    ports:
+      - "5433:5432" # <--- Giữ nguyên cổng 5433
+    volumes:
+      - ./data_fresh_v2:/var/lib/postgresql/data # <--- QUAN TRỌNG: Đổi tên folder khác hẳn
+
+  # 2. Service Quản lý DB (pgAdmin - Tùy chọn)
+  # Giúp bạn xem dữ liệu bằng giao diện web thay vì dòng lệnh
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: giay_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80" # Chạy pgAdmin ở cổng 5050
+    depends_on:
+      - postgres
