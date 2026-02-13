@@ -23,10 +23,9 @@ export default function CheckoutPage() {
     fullName: user?.full_name || "",
     phone: user?.phone || "",
     email: user?.email || "",
-    address: "",
-    city: "",
-    district: "",
-    ward: "",
+    address: user?.address || "",
+    city: user?.city || "",
+    district: user?.district || "",
     note: "",
   });
 
@@ -39,7 +38,7 @@ export default function CheckoutPage() {
   // backup khi f5 mất state
   const fallbackSubTotal = items.reduce(
     (total, item) => total + item.price * item.quantity,
-    0
+    0,
   );
   const SHIPPING_THRESHOLD = 5000000;
   const fallbackShipping = fallbackSubTotal >= SHIPPING_THRESHOLD ? 0 : 35000;
@@ -68,12 +67,7 @@ export default function CheckoutPage() {
     // xử lý địa chỉ
     try {
       setLoading(true);
-      const fullAddress = [
-        formData.address,
-        formData.ward,
-        formData.district,
-        formData.city,
-      ]
+      const fullAddress = [formData.address, formData.district, formData.city]
         .filter(Boolean) // loại bỏ các gtri rỗng
         .join(", "); // nối lại bằng các dấu ,
 
@@ -105,7 +99,7 @@ export default function CheckoutPage() {
           toast.loading("Đang chuyển đến cổng thanh toán...");
           router.push(
             // chuyển sang trang nhập thẻ kèm key
-            `/payment/stripe?clientSecret=${clientSecret}&orderId=${orderId}`
+            `/payment/stripe?clientSecret=${clientSecret}&orderId=${orderId}`,
           );
         } else {
           toast.error("Lỗi khởi tạo thanh toán.");

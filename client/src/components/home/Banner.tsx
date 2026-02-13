@@ -1,26 +1,38 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { Carousel, ConfigProvider } from "antd";
 import Image from "next/image";
+import Link from "next/link";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 
-// Dữ liệu Slide (Đã bỏ link)
 const SLIDE_IMAGES = [
   {
     id: 1,
     image: "/images/banner-1.jpg",
+    title: "SHUT UP AND DRIBBLE",
+    subtitle:
+      "Only one King can turn a televised moment into a stand for activism.",
+    btnText: "Shop Now",
+    btnLink: "/products/lebron",
   },
   {
     id: 2,
     image: "/images/banner-2.jpg",
-  },
-  {
-    id: 3,
-    image: "/images/banner-3.jpg",
+    title: "ATTACK PACK",
+    subtitle:
+      "Tiempo joins the attack. Score the boot that lets you find the back of the net.",
+    btnText: "Buy Now",
+    btnLink: "/products/football",
   },
 ];
 
 export default function Banner() {
+  const carouselRef = useRef(null);
+
+  const handlePrev = () => carouselRef.current?.prev();
+  const handleNext = () => carouselRef.current?.next();
+
   return (
     <ConfigProvider
       theme={{
@@ -33,32 +45,70 @@ export default function Banner() {
         },
       }}
     >
-      {/* Container chính: Bỏ class h-[400px] để chiều cao tự động theo ảnh */}
-      <div className="relative w-full">
-        <Carousel autoplay autoplaySpeed={5000} effect="fade" infinite>
+      <div className="relative w-full group">
+        <Carousel
+          ref={carouselRef}
+          autoplay
+          autoplaySpeed={3000}
+          effect="fade"
+          infinite
+          dots={true} // Ẩn dấu chấm tròn vì đã có nút điều hướng
+        >
           {SLIDE_IMAGES.map((slide) => (
-            <div key={slide.id} className="w-full">
-              {/* Thay đổi quan trọng:
-                1. Bỏ thẻ <Link> bao ngoài.
-                2. Bỏ prop "fill" và "object-cover".
-                3. Thêm width/height tượng trưng (tỉ lệ chuẩn 16:9 hoặc theo ảnh thật của bạn).
-                4. style={{ width: '100%', height: 'auto' }}: Giúp ảnh luôn full màn hình chiều ngang, 
-                   chiều dọc tự co giãn -> Không bao giờ bị cắt ảnh.
-              */}
+            <div key={slide.id} className="relative w-full">
+              {/* Ảnh Banner */}
               <Image
                 src={slide.image}
                 alt={`Banner ${slide.id}`}
-                width={1920} // Chiều rộng gốc của ảnh banner (ví dụ 1920px)
-                height={800} // Chiều cao gốc của ảnh banner (ví dụ 800px)
-                className="w-full h-auto" // Tailwind: width 100%, height auto
+                width={1920}
+                height={800}
+                className="w-full h-auto"
                 priority={slide.id === 1}
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
                 }}
               />
+
+              {/* Lớp phủ màu tối dần từ dưới lên */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+              {/* Nội dung chữ */}
+              <div className="absolute inset-0 flex flex-col justify-end items-center text-center text-white px-4 pb-12 md:pb-20">
+                <h2 className="text-2xl md:text-5xl font-black uppercase tracking-wider mb-2 drop-shadow-2xl">
+                  {slide.title}
+                </h2>
+                <p className="text-xs md:text-lg font-medium max-w-lg md:max-w-2xl mb-6 drop-shadow-md opacity-90">
+                  {slide.subtitle}
+                </p>
+                <Link
+                  href={slide.btnLink}
+                  className="bg-white text-black px-6 py-2 md:px-8 md:py-3 rounded-full font-bold text-xs md:text-base hover:bg-gray-200 transition-all shadow-xl hover:scale-105"
+                >
+                  {slide.btnText}
+                </Link>
+              </div>
             </div>
           ))}
         </Carousel>
+
+        {/* --- CỤM ĐIỀU HƯỚNG GÓC PHẢI (CHỈ CÒN PREV & NEXT) --- */}
+        <div className="absolute bottom-4 right-4 md:bottom-10 md:right-10 z-30 flex items-center gap-3">
+          {/* Nút Previous */}
+          <button
+            onClick={handlePrev}
+            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-black border border-white/50 transition-all duration-300 flex items-center justify-center shadow-lg"
+          >
+            <LeftOutlined className="text-lg" />
+          </button>
+
+          {/* Nút Next */}
+          <button
+            onClick={handleNext}
+            className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-black border border-white/50 transition-all duration-300 flex items-center justify-center shadow-lg"
+          >
+            <RightOutlined className="text-lg" />
+          </button>
+        </div>
       </div>
     </ConfigProvider>
   );

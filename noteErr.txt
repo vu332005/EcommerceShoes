@@ -1,0 +1,4 @@
+- PayloadTooLargeError: request entity too large xảy ra vì mặc định ExpressJS chỉ cho phép gửi dữ liệu (JSON) tối đa là 100KB (limit: 102400 như trong log).
+    + cách khắc phục
+        - bạn cần tăng giới hạn kích thước body trong file cấu hình chính của Server (thường là server/src/index.ts hoặc server/src/app.ts).
+

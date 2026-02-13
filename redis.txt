@@ -1,0 +1,128 @@
+    KHÁI NIỆM CƠ BẢN
+- im-memory Db: redis lưu toàn bộ dữ liệu trên RAM -> tốc độ truy xuất nhanh hơn nghìn lần so với disk(ổ cứng)
+- single-threaded event loop:
+Sự khác biệt:
+    + SQL: Cấu trúc bảng chặt chẽ, phù hợp cho dữ liệu quan hệ phức tạp.
+    + Redis: Cấu trúc Key-Value, phù hợp cho các tác vụ cần tốc độ phản hồi cực nhanh (Cache, Session, Leaderboard).
+
+    CÁC KIỂU DỮ LIỆU
+
+    1. Strings (Chuỗi) - Kiểu "Vạn năng"
+        - Đây là kiểu dữ liệu đơn giản nhất. Một Key chỉ đi kèm với đúng một Value.
+        - Nó là gì: Giống như một biến đơn trong lập trình (name = "Adidas"). Nó có thể chứa văn bản, số, hoặc thậm chí là một đoạn mã JSON dài.
+        - Đặc điểm: Một String có thể nặng tối đa 512MB. Nếu là số, bạn có thể dùng lệnh để tăng/giảm giá trị trực tiếp.
+        - Ứng dụng thực tế:
+            + Cache API: Lưu toàn bộ kết quả trả về của một API dưới dạng JSON string.
+            + Bộ đếm (Counter): Đếm số lượt xem bài viết, số lần click chuột.
+            + Lưu Session: Lưu thông tin đăng nhập của người dùng trong 1 phiên làm việc.
+    2. Hashes (Bảng băm) - Kiểu "Đối tượng"
+        - Thay vì lưu một JSON string dài ngoằng vào String, Hashes cho phép bạn chia nhỏ đối tượng thành các cặp field - value.
+        - Nó là gì: Giống như một Object trong JavaScript hoặc một hàng (row) trong bảng SQL.
+        - Đặc điểm: Bạn có thể lấy ra hoặc cập nhật chỉ một trường duy nhất (ví dụ: chỉ cập nhật giá giày) mà không cần lấy cả đối tượng ra rồi lưu lại.
+        - Ứng dụng thực tế:
+            + User Profile: Lưu thông tin người dùng (name, email, age).
+            + Thông tin sản phẩm: Trong dự án bán giày của bạn, mỗi Key là một mã giày, các field là color, size, price.
+    3. Lists (Danh sách) - Kiểu "Hàng đợi"
+        - Một danh sách các chuỗi được sắp xếp theo thứ tự thời gian bạn thêm vào.
+        - Nó là gì: Giống như một hàng người đang xếp hàng mua vé. Ai đến trước đứng trước, ai đến sau đứng sau.
+        - Đặc điểm: Bạn có thể đẩy dữ liệu vào đầu (Left) hoặc cuối (Right) danh sách.
+        - Ứng dụng thực tế:
+            + Message Queue: Hệ thống đẩy thông báo. Đơn hàng mới vào sẽ nằm ở cuối danh sách, nhân viên xử lý sẽ lấy từ đầu danh sách ra.
+            + Lịch sử hoạt động: Lưu 10 hành động gần nhất của người dùng.
+    4. Sets (Tập hợp) - Kiểu "Độc bản"
+        - Một tập hợp các phần tử không có thứ tự và không bao giờ trùng lặp.
+        - Nó là gì: Giống như một cái túi đựng bóng, bạn ném 2 quả bóng màu đỏ giống hệt nhau vào thì trong túi vẫn chỉ tính là có 1 quả màu đỏ.
+        - Đặc điểm: Hỗ trợ các phép toán tập hợp như: Tìm những điểm chung giữa 2 tập hợp, hoặc những điểm riêng.
+        - Ứng dụng thực tế:
+            + Hệ thống Like: Mỗi người chỉ được like 1 lần. Nếu họ bấm like lần 2, Redis sẽ tự bỏ qua vì đã tồn tại ID đó trong Set.
+            + Tagging: Một đôi giày có thể có nhiều tag như #thethao, #sneaker, #chaybo.
+    5. Sorted Sets (ZSet) - Kiểu "Bảng xếp hạng"
+        - Giống như Set (không trùng lặp) nhưng mỗi phần tử có thêm một con số gọi là Score (điểm số).
+        - Nó là gì: Giống như một danh sách lớp, mỗi học sinh (phần tử) có một mức điểm (score). Redis sẽ tự động sắp xếp học sinh theo điểm từ thấp đến cao (hoặc ngược lại).
+        - Đặc điểm: Truy xuất cực nhanh. Bạn có thể hỏi: "Cho tôi biết 5 người có điểm cao nhất" và Redis trả lời ngay lập tức.
+        - Ứng dụng thực tế:
+            + Leaderboard: Bảng xếp hạng game, bảng xếp hạng các đôi giày bán chạy nhất tháng.
+            + Hệ thống ưu tiên: Xử lý các tác vụ dựa trên mức độ ưu tiên (Task có score cao hơn sẽ được xử lý trước).
+
+    2. Ví dụ thực tế: Hệ thống bán giày
+        Giả sử bạn có đôi giày "Nike Air Jordan" với ID là 101.
+        
+        A. Dùng String để lưu "Thông báo khuyến mãi"
+        Bạn muốn lưu một đoạn văn bản hiện lên đầu trang web.
+            - Lệnh: SET promo_banner "Giảm giá 50% cho tất cả giày Nike!"
+            - Tại sao: Vì đây là một chuỗi văn bản đơn giản, bạn chỉ cần lấy ra và hiển thị, không cần sửa đổi gì bên trong.
+        B. Dùng Hash để lưu "Chi tiết đôi giày"
+        Thay vì lưu một cục JSON, bạn chia nhỏ ra.
+            - Lệnh: HSET shoe:101 name "Air Jordan" price 200 stock 50
+            - Sự khác biệt: Nếu ngày mai giày tăng giá lên 220, bạn chỉ cần gõ: HSET shoe:101 price 220. Bạn không cần phải lấy cả tên và số lượng ra để lưu lại.
+        C. Dùng List để lưu "Đơn hàng đang chờ xử lý"
+        Khi khách đặt hàng, đơn hàng được đẩy vào cuối danh sách.
+            - Lệnh: RPUSH order_queue "order_777" (Khách A đặt), RPUSH order_queue "order_778" (Khách B đặt).
+            - Sự khác biệt: Nhân viên kho sẽ dùng LPOP order_queue để lấy đơn hàng cũ nhất ra xử lý trước. Thứ tự luôn được đảm bảo.
+        D. Dùng Set để lưu "Danh sách yêu thích (Wishlist)"
+        Mỗi đôi giày, bạn muốn biết có những ai thích nó.
+            - Lệnh: SADD favorite:shoe:101 user_id_1, SADD favorite:shoe:101 user_id_2.
+            - Sự khác biệt: Nếu user_id_1 bấm thích 10 lần, Redis cũng chỉ lưu ID đó đúng 1 lần. Bạn có thể dùng lệnh SINTER để xem: "Những đôi giày nào mà cả tôi và bạn tôi cùng thích?".
+        E. Dùng Sorted Set để lưu "Top giày bán chạy nhất"
+        Mỗi khi một đôi giày được bán, bạn tăng điểm cho nó.
+            - Lệnh: ZINCRBY best_sellers 1 "shoe:101" (Giày 101 bán thêm được 1 đôi).
+            - Sự khác biệt: Redis sẽ tự động sắp xếp. Bạn chỉ cần gõ ZREVRANGE best_sellers 0 2 WITHSCORES là có ngay Top 3 đôi giày bán chạy nhất để hiển thị lên trang chủ.
+    
+    QUẢN LÝ DỮ liệu 
+- redis insight
+- redis CLI(command line interface)
+    + Nếu bạn cài trên Windows (qua WSL2) hoặc Linux, chỉ cần mở Terminal và gõ: redis-cli.
+    Liệt kê các Key:
+    1. Nhóm lệnh "Quản trị & Debug" (Cực kỳ quan trọng)
+        Đây là những lệnh bạn sẽ gõ đầu tiên khi mở Terminal để kiểm tra xem "chuyện gì đang xảy ra".
+            + PING: Kiểm tra kết nối. Nếu Redis trả về PONG nghĩa là mọi thứ đang ổn.
+            + INFO: Xem tất cả thông số hệ thống (phiên bản, lượng RAM đang dùng, số lượng kết nối...).
+            + MONITOR: Chế độ "thám tử". Nó sẽ hiển thị mọi lệnh mà code (ioredis) đang gửi đến Redis theo thời gian thực.
+            + DBSIZE: Trả về tổng số lượng Key hiện có trong database.
+            + FLUSHDB: Xóa sạch toàn bộ dữ liệu của Database hiện tại.
+            + FLUSHALL: Xóa sạch toàn bộ dữ liệu của tất cả các Database.
+    2. Nhóm lệnh "Thao tác Key" (Dùng cho mọi kiểu dữ liệu)
+        Bất kể bạn đang lưu String hay Hash, những lệnh này luôn cần thiết:
+            + DEL <key>: Xóa một hoặc nhiều Key.
+            + EXPIRE <key> <seconds>: Đặt thời gian hết hạn cho Key (sau X giây sẽ tự xóa).
+            + TTL <key>: Kiểm tra xem Key còn bao nhiêu giây nữa thì biến mất.
+            + RENAME <old_key> <new_key>: Đổi tên Key.
+            + TYPE <key>: Kiểm tra xem Key này thuộc kiểu dữ liệu nào (string, hash, list...).
+    3. Nhóm lệnh "Thao tác dữ liệu" (Hay dùng trong Code)
+        A. Với Strings (Lưu biến đơn, Cache API)
+            + SET <key> <value> [EX seconds]: Vừa lưu giá trị, vừa đặt luôn thời gian hết hạn (Rất hay dùng để Cache).
+            + GET <key>: Lấy giá trị.
+            + INCR / DECR <key>: Tăng/Giảm một giá trị số (Ứng dụng cho bộ đếm lượt xem, lượt click).
+            + MSET / MGET: Lưu/Lấy nhiều Key cùng lúc để giảm độ trễ mạng.
+        B. Với Hashes (Lưu Object: User, Product)
+            + HSET <key> <field> <value>: Lưu một thuộc tính vào Object.
+            + HGET 
+            + HGETALL <key>: Lấy toàn bộ thông tin của Object đó.
+            + HDEL <key> <field>: Xóa một thuộc tính cụ thể (ví dụ: xóa avatar của User).
+        C. Với Lists (Lưu Queue, Lịch sử)
+            + LPUSH <key> <value>: Đẩy một phần tử vào đầu danh sách.
+            + RPop <key>: Lấy một phần tử ở cuối danh sách ra (Kết hợp 2 lệnh này để làm Hàng đợi - Queue).
+            + LLEN <key>: Xem độ dài của danh sách.
+        D. Với Sorted Sets (Làm Leaderboard, Top bán chạy)
+            + ZADD <key> <score> <member>: Thêm một thành viên kèm điểm số.
+            + ZREVRANGE <key> 0 <n> WITHSCORES: Lấy ra Top n người có điểm cao nhất.
+        
+        REDIS CLIENT
+- ý nghĩa: Dùng để Xây dựng (Build)
+    -> Đây là cách ứng dụng của bạn tự động giao tiếp với dữ liệu. Bạn viết code một lần, và nó sẽ thực hiện hàng triệu lần mỗi khi có người dùng truy cập web bán giày của bạn
+    - Redis CLI: Dùng để Kiểm tra (Debug). Bạn chỉ dùng nó khi muốn "nhảy vào" xem dữ liệu hiện tại có đúng không, hoặc khi cần xóa nhanh dữ liệu để test lại (ví dụ dùng FLUSHDB)
+
+-  node.js: redis, ioredis
+
+- Luồng làm việc 
+    + Khi bạn phát triển tính năng "Giỏ hàng", quy trình thường sẽ là:
+    + Viết Code (Dùng Client): Bạn dùng ioredis viết hàm addItemToCart(userId, shoeId).
+    + Chạy ứng dụng: Bạn mở web, bấm nút "Thêm vào giỏ".
+    + Kiểm tra (Dùng CLI hoặc Redis Insight): Bạn mở Terminal, gõ HGETALL cart:user_1 để xem xem Code mình vừa viết có thực sự lưu đúng ID đôi giày và số lượng vào Redis hay chưa.
+
+    HANDLE EXPIRATIONS
+    
+
+note: 
+npm install ioredis
+npm install --save-dev @types/ioredis

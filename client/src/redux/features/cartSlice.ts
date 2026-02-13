@@ -29,11 +29,11 @@ const cartSlice = createSlice({
   initialState: {
     items: [] as CartItem[],
     loading: false,
-  checkoutInfo: {
-    subTotal: 0,
-    shippingFee: 0,
-    finalTotal: 0,
-  },
+    checkoutInfo: {
+      subTotal: 0,
+      shippingFee: 0,
+      finalTotal: 0,
+    },
   },
   reducers: {
     // Action để reset giỏ hàng khi logout

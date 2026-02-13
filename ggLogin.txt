@@ -1,0 +1,128 @@
+- giao thức OAuth2(open authorization)
+    - cho phép 1 ứng dụng bên thứ 3 truy cập vào tài nguyên của ng dùng trên 1 ứng dụng khác (gg / fb,...) 
+    -> mà không cần ng dùng phải cung cấp mật khẩu cho bên thứ 3 đó
+    vd : đăng nhập vào web của mình bằng gg ->  web lấy được thông tin của ng dùng từ gg nhưng kbt mk gg 
+
+    luồng cơ bản:
+    4. Luồng hoạt động (Workflow) - Dễ hiểu nhất
+    Đây là kịch bản phổ biến nhất: "Đăng nhập bằng Google".
+        + Yêu cầu: Người dùng click vào nút "Login with Google" trên Web bán hàng của bạn.
+        + Chuyển hướng: Web của bạn (Client) nói: "Tôi không giữ mật khẩu, hãy sang Google mà đăng nhập" -> Trình duyệt chuyển hướng người dùng sang trang của Google.
+        + Hỏi ý kiến: Người dùng đăng nhập thành công tại Google. Google hiện bảng: "Ứng dụng Bán Giày muốn xem Email và Tên của bạn. Cho phép không?"
+        + Cấp mã tạm: Nếu người dùng bấm OK, Google gửi trả lại cho Web của bạn một cái mã tạm thời gọi là Authorization Code.
+        + Đổi mã lấy Token: Web của bạn (Server backend) cầm cái Code này, bí mật liên hệ với Google Server: "Đây là Code người dùng vừa đưa, hãy đưa cho tôi chìa khóa (Token) thật sự".
+        + Nhận Token: Google kiểm tra Code hợp lệ và trả về Access Token.
+        + Truy cập dữ liệu: Từ giờ, Web của bạn dùng Access Token này để gọi API lấy thông tin (email, tên) từ Google mà không cần hỏi lại người dùng.
+
+    lý do OAuth2 an toàn
+        - Không lộ Password: Shoes Shop không bao giờ nhìn thấy, không bao giờ lưu mật khẩu Google của user. Dù Shoes Shop có bị hack, hacker cũng không lấy được mật khẩu Google của user.
+        - Quyền hạn giới hạn (Scope): Khi đăng nhập, Google chỉ cho phép Shoes Shop lấy email và profile. Shoes Shop không thể đọc trộm email trong Gmail hay xem ảnh trong Google Photos (trừ khi user cấp thêm quyền).
+        - Token có thể bị thu hồi: Nếu user mất điện thoại, họ có thể vào cài đặt Google và bấm "Đăng xuất khỏi Shoes Shop". Ngay lập tức cái Token cũ bị vô hiệu hóa, Shoes Shop không thể truy cập dữ liệu được nữa.
+1. Luồng hoạt động (Logic Flow)
+    Quy trình này tuân theo chuẩn OAuth 2.0 và mô hình Client-First (Frontend lấy token, Backend xác thực).
+        - Client (Người dùng): Bấm nút "Đăng nhập bằng Google".
+        - Google: Hiện Popup, người dùng chọn tài khoản Gmail.
+        - Google -> Client: Trả về một chuỗi mã hóa gọi là Credential (ID Token).
+        - Client -> Server (Backend): Gửi chuỗi Credential này qua API (ví dụ: POST /api/auth/google).
+        - Server: Dùng thư viện Google để giải mã Credential
+            + Kiểm tra: Token này có phải do Google cấp không? Có phải cấp cho App của mình (Client ID) không?
+            + Lấy info: Nếu đúng, lấy ra Email, Tên, Avatar.
+        - Server (Database): Kiểm tra Email trong Database:
+            + Trường hợp 1 (Đã có): Lấy thông tin user đó ra.
+            + Trường hợp 2 (Chưa có): Tự động tạo user mới (Register ngầm) với email đó -> Lưu vào DB.
+        - Server -> Client: Tạo JWT (AccessToken) của hệ thống bạn và trả về cho Client.
+        - Client: Lưu JWT, cập nhật Redux và chuyển hướng vào trang chủ (Hoàn tất).
+2. Các bước thực hiện chi tiết
+    Bước 1: Cấu hình Google Cloud (Lấy "Chìa khóa")
+        + Truy cập Google Cloud Console.
+        + Tạo Project mới.
+        + Vào APIs & Services > Credentials -> Tạo OAuth Client ID.
+        + Chọn Web application.
+        + Phần Authorized JavaScript origins: Điền http://localhost:3000 (quan trọng để test local).
+        + Copy Client ID (dạng ...apps.googleusercontent.com).
+    Bước 2: Cài đặt thư viện
+        + Backend: npm install google-auth-library
+        + Frontend: npm install @react-oauth/google
+    Bước 3: Code Backend (Server)
+        - Service (authService.ts): Viết hàm loginGoogleService.
+            + Dùng OAuth2Client để verifyIdToken.
+            + Lấy email, picture, name từ payload.
+            + Dùng findOneBy({ email }) để tìm user.
+            + Nếu chưa có -> userRepository.create(...) (tạo password ngẫu nhiên).
+            + Cuối cùng gọi generateTokens để trả về token hệ thống.
+        - Controller (authController.ts): Viết hàm loginGoogle.
+            + Lấy req.body.credential.
+            + Gọi Service và trả kết quả JSON về.
+        - Route (authRoutes.ts):
+            + Thêm router.post("/google", loginGoogle).
+    Bước 4: Code Frontend (Client)
+        - Service (authService.ts frontend):
+            Viết hàm gọi API: axios.post("/auth/google", { credential }).
+        - Giao diện (login/page.tsx):
+            Bọc GoogleOAuthProvider với clientId vừa lấy ở Bước 1.
+            Dùng component <GoogleLogin />.
+            Trong sự kiện onSuccess:
+                Lấy credentialResponse.credential.
+                Gửi xuống Backend.
+                Nhận về JWT -> Dispatch loginSuccess vào Redux.
+                Redirect về trang chủ.
+    Tóm tắt sự khác biệt chính với Login thường:
+        Login thường: Bạn gửi email + password -> Server check password hash.
+        Login Google: Bạn gửi Google Token -> Server check chữ ký Token (verify) -> Tin tưởng email trong đó là thật.
+
+note :
+    - luồng đăng nhập fb và gg cơ bản giống nhau
+    khác
+        + gg khi đăng nhập thành công -> nhận về 1 mã code -> backend dùng thư viện gg để check mã code và lấy ra dlieu ng Dùng
+        + fb khi đăng nhập thành công -> nhận về 1 AccessToken -> bakend dùng AccessToken này để gọi 1 api của fb để lấy về dlieu ng dùng
+
+- luồng đăng nhập bằng fb 
+    - chuẩn bị : lấy appId + appSecret
+        +  vào developers.facebook.com -> tạo tk với loại ứng dụng: Chọn "Authenticate and request data from users with Facebook Login"
+        + config:
+            + vào cài đặt ứng dùng -> ttin cơ bản -> thêm nền tảng -> web -> điền url (nếu local thì là http://localhost:3000/)
+            + vào trg hợp sử dụng -> chỉnh sửa: 
+                - vào cài đặt : 
+                    + bật: Đăng nhập bằng JavaScript SDK      
+                    + điền - Miền được phép cho JavaScript SDK: (nếu local thì là http://localhost:3000/)
+                - vào quyền và tính năng:
+                    + bật email -> acitons
+    - ở frontend   
+        + dùng thư viện react-facebook-login để hiện nút bấm cho nhanh
+        - khi user đăng nhập thành công -> Facebook trả về accessToken và userID
+        -> ném xuống backend để check và lấy dlieu
+    ở backend
+        + nhận accessToken từ fe -> gửi về 1 api của fb để check lại với fb
+        + xử lý DB:
+            - có r -> tạo accessToken jwt cho Vào
+            - chưa có -> tạo user mới với dlieu từ fb 
+
+    1. App ID (Định danh ứng dụng)
+        - Chức năng: Để Facebook biết "Ai đang yêu cầu đăng nhập?". Khi người dùng bấm nút "Login with Facebook", App ID sẽ báo cho Facebook biết là: "À, đây là khách của ứng dụng Shoes Shop, chứ không phải khách của Shopee hay Lazada".
+    2. App Secret (Mã bí mật ứng dụng)
+        - Chức năng: Dùng để xác minh uy tín ở phía Server (Backend).
+        - Sau khi người dùng đăng nhập xong ở Frontend, Facebook sẽ trả về một mã tạm.
+        - Backend (Node.js) của bạn sẽ dùng App Secret này để gửi ngược lại cho Facebook và nói: "Tôi đúng là chủ của Shoes Shop đây (tôi có chìa khóa xịn), mã tạm vừa rồi là thật hay giả? Nếu thật thì cho tôi xin thông tin email của user này".
+        ->Nhờ có App Secret, kẻ gian không thể giả mạo ứng dụng của bạn để đánh cắp dữ liệu người dùng.
+
+    chi tiết hơn về backend
+        - khi nhận được accessToken từ frontend -> be chỉ cần gọi api https://graph.facebook.com/me kèm accessToken là sẽ có dlieu user
+
+        * nhưng để đúng về bảo mật -> ta cần check xem accessToken này có đúng là để cho web này hay k
+            + tạo appAccessToken = App ID + App Secret
+            + dùng appAccessToken -> gọi api https://graph.facebook.com/debug_token 
+                -> nó sẽ cho ta biết accessToken này thuộc web nào 
+                Khác biệt:
+                        API /me: Chỉ hỏi "Ông là ai?". Facebook trả lời: "Tôi là Nguyễn Văn A".
+                        API /debug_token: Hỏi "Cái thẻ bài này xuất xứ từ đâu?". Facebook trả lời: "Thẻ này cấp cho Nguyễn Văn A, được cấp bởi ứng dụng ABC, hết hạn vào lúc XYZ".
+            -> ta dùng dlieu api debug trả về check với appid xem có đúng accessToken từ web mình k thì mới cho Vào
+    
+    kịch bản tấn công :
+        - Hacker tạo một app nhảm nhí tên là "Bói Toán Vui" (App ID: 99999).
+        - Bạn (User) thấy vui nên chơi thử app "Bói Toán Vui" -> Bạn đăng nhập FB -> Hacker có accessToken của bạn (nhưng token này được Facebook cấp cho App 99999).
+        - Hacker lấy cái token đó, gửi vào API loginFacebook của Shoes Shop (App ID: 12345).
+        - Shoes Shop (nếu code ngây thơ) chỉ gọi /me:
+        - Hỏi FB: "Token này là ai?"
+        - FB trả lời: "Là User Trần Anh Vũ".
+        - Kết quả: Shoes Shop cho Hacker đăng nhập vào tài khoản của Trần Anh Vũ. TOANG!
+

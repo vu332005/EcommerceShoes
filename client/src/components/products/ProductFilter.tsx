@@ -85,17 +85,17 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
     updateParams({ sort: checked ? value : null });
   };
 
-  // 2. Danh mục (Category)
+  // Danh mục (Category)
   const handleCategoryCheck = (catId: number, checked: boolean) => {
     updateParams({ category_id: checked ? String(catId) : null });
   };
 
-  // 3. Thương hiệu (Brand)
+  // Thương hiệu (Brand)
   const handleBrandCheck = (brandId: number, checked: boolean) => {
     updateParams({ tag_ids: checked ? String(brandId) : null });
   };
 
-  // 4. Giá (Price)
+  // Giá (Price)
   const handlePriceCheck = (index: number, checked: boolean) => {
     if (checked) {
       const range = PRICE_RANGES[index];
@@ -254,7 +254,7 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
         },
       }}
     >
-      {/* 1. GIAO DIỆN MOBILE: Nút mở Drawer */}
+      {/* GIAO DIỆN MOBILE: Nút mở Drawer */}
       <div className="lg:hidden mb-4 flex justify-end">
         <Button
           onClick={() => setMobileFilterOpen(true)}
@@ -293,7 +293,7 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
         </div>
       </Drawer>
 
-      {/* 2. GIAO DIỆN DESKTOP: Sidebar cố định (Giữ nguyên như cũ) */}
+      {/* GIAO DIỆN DESKTOP: Sidebar cố định (Giữ nguyên như cũ) */}
       <div className="hidden lg:block bg-white rounded-lg p-4 shadow-sm border border-gray-100">
         {renderFilterContent()}
       </div>

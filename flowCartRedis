@@ -1,0 +1,79 @@
+cart redis
+- addcart
+Check SQL: Hàng có thật không?
+Check Redis: Đang có hàng gì trong giỏ rồi?
+Tính toán: Cộng thêm số lượng hoặc thêm món mới.
+Lưu Redis: Cất giỏ hàng đi (hẹn 7 ngày sau tự hủy nếu không ai đụng đến).
+Phản hồi: Trả về giỏ hàng chi tiết (có ảnh, giá) cho người dùng xem.
+
+- updatecart
+Frontend: Gửi yêu cầu "Sửa món hàng có mã 101 thành số lượng 5".
+Backend:
+Vào Redis lấy cái hộp cart:user_1 ra.
+Mở hộp ra (JSON.parse), tìm món đồ có mã 101.
+Lấy bút xóa sửa số lượng cũ thành số 5.
+Đóng hộp lại (JSON.stringify).
+Cất lại vào Redis và dặn Redis: "Giữ hộ 7 ngày nữa nhé".
+Chạy sang kho SQL, lấy hình ảnh/giá mới nhất của món 101 để báo cáo lại cho Frontend.
+
+- deletecart
+ng dùng gửi userid và itemid mà muốn xóa
+lấy dlieu thô từ redis
+fillter lại cart của user mới không có itemid cần xóa
+lưu cart mới xuống redis
+trả lại toàn bộ giỏ hàng mới dlieu mới
+
+- getCart
+Bước 1 (Redis): Bạn cầm tờ giấy ghi chú "Mua táo (2 quả), Mua sữa (1 hộp)" ra siêu thị. (Đây là dữ liệu thô).
+Bước 2 (DB): Bạn đi đến kệ hàng. Bạn nhìn vào bảng giá và hạn sử dụng trên kệ của "Táo" và "Sữa". (Đây là dữ liệu chi tiết).
+Bước 3 (Merge): Bạn nhặt hàng bỏ vào giỏ thực tế. Nếu kệ "Sữa" trống trơn (hết hàng/ngừng bán), bạn gạch tên sữa khỏi tờ giấy (đây là bước lọc null).
+Bước 4 (Return): Bạn mang cái giỏ đầy ắp hàng hóa ra quầy thu ngân.
+
+updateprofile
+fe:
+- chuyển ảnh về base 64 -> cho xem trc ảnh
+- lấy dlieu từ form gửi lên be
+be:
+- cập nhật ttin bảng user -> lưu lại
+- cập nhật dchi / chưa có thì tạo mới -> lưu lại
+- trả về 1 dlieu đã gộp mảng + dchi -> trả cho redux cập nhật 
+
+admin cart
+Bước,Hành động,             Luồng xử lý
+1,  Truy vấn danh sách,     "Client gửi page, limit -> Hệ thống lọc theo status/keyword -> Trả về danh sách đơn hàng đã phân trang."
+2,  Xem chi tiết,           Client chọn 1 đơn hàng cụ thể -> Hệ thống kết nối (Join) từ Đơn hàng -> Item -> Biến thể -> Sản phẩm để hiển thị đầy đủ thông tin.
+3,  Cập nhật,               Admin thay đổi trạng thái đơn hàng -> Hệ thống kiểm tra sự tồn tại -> Ghi đè trạng thái mới vào DB.
+
+tạo order
+1. Kiểm tra giỏ hàng
+Truy xuất Redis: Lấy dữ liệu giỏ hàng của người dùng từ Redis thông qua userId.
+
+Xác thực rỗng: Nếu không có dữ liệu, trả về lỗi "Giỏ hàng trống" và dừng xử lý.
+
+Chuyển đổi: Biến dữ liệu từ dạng Map (ID: Số lượng) sang mảng Object để dễ xử lý.
+
+2. Xác thực sản phẩm từ Database
+Truy vấn DB: Lấy thông tin mới nhất của các biến thể sản phẩm (giá, tên, thuộc tính) trực tiếp từ database để đảm bảo an toàn.
+
+Tính toán giá: Sử dụng giá ghi đè (priceOverride) hoặc giá gốc từ DB, tuyệt đối không tin vào giá từ phía client.
+
+3. Khởi tạo Giao dịch (Transaction)
+Mở Transaction: Sử dụng queryRunner để đảm bảo tính toàn vẹn (thành công tất cả hoặc hủy bỏ tất cả nếu có lỗi).
+
+4. Tạo Đơn hàng và Thanh toán
+Xử lý Item: Duyệt danh sách, tính tổng tiền và tạo các đối tượng OrderItem kèm thông tin thuộc tính (màu sắc, kích cỡ).
+
+Lưu Order: Lưu thông tin đơn hàng và địa chỉ giao hàng vào bảng Order.
+
+Xử lý Stripe: Nếu thanh toán qua thẻ (STRIPE), gọi API tạo PaymentIntent để lấy clientSecret trả về cho client.
+
+Lưu Payment: Tạo bản ghi thanh toán với trạng thái chờ (pending) liên kết với đơn hàng.
+
+5. Hoàn tất
+Xác nhận: commit toàn bộ dữ liệu vào database.
+
+Dọn dẹp: Xóa giỏ hàng trong Redis của người dùng sau khi đặt hàng thành công.
+
+Giải phóng: Đóng kết nối queryRunner.
+
+

@@ -1,0 +1,96 @@
+- Bạn cần cài js-cookie để lưu cookie ở phía Client (cho Middleware đọc) và jose để giải mã JWT ở phía Middleware (Edge Runtime không hỗ trợ thư viện jsonwebtoken của Node.js).
+npm install js-cookie jose
+npm install --save-dev @types/js-cookie
+
+Hành vi cũ: User vào /admin -> Tải trang -> JS chạy -> Redux check role -> Nếu sai thì redirect (User thấy nháy trang hoặc loading).
+Hành vi mới (Middleware): User vào /admin -> Server check Cookie -> Nếu sai role -> Redirect ngay lập tức (User không kịp thấy trang admin). An toàn và chuyên nghiệp hơn.
+
+        // Lưu lại url hiện tại để login xong redirect về đúng chỗ cũ (tùy chọn)
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+
+
+- không bắt được lỗi 401 -> để refesh token
+
+Trình duyệt gửi yêu cầu chuyển trang tới Server (GET /admin).
+
+Middleware (middleware.ts) chạy ĐẦU TIÊN: Nó đọc Cookie hiện tại.
+
+Lúc này Cookie VẪN LÀ CÁI CŨ (hết hạn lúc 10:00) vì Axios chưa hề có cơ hội chạy (bạn có gọi API sản phẩm đâu mà nó chạy?).
+Middleware thấy Token hết hạn $\rightarrow$ return NextResponse.redirect('/login').
+\
+
+
+    KHÁI NIỆM
+- như 1 ng gác cổng -> cho phép chạy code trước khi 1 req được hoàn thành
+    -> dựa trên ycau -> có thể sửa res bằng cách - viết lại đường dẫn (rewrite), chuyển hướng (redirect), sửa đổi header hoặc trả về phản hồi trực tiếp.
+
+    CÁCH HOẠT ĐỘNG
+- chạy trước khi nội dung được render
+- sử dụng Edge Runtime -> tốc độ phản hồi cực nhanh (vì chạy ở các node gần ng dùng nhất )
+Đặc điểm chính:
+    Vị trí: File middleware.ts (hoặc .js) phải nằm ở gốc (root) của dự án (cùng cấp với package.json hoặc bên trong thư mục src).
+    Phạm vi: Theo mặc định, nó sẽ chạy cho tất cả các route trong dự án của bạn.
+
+    CÁC THÀNH PHẦN QUAN TRỌNG - HAY DÙNG
+- Matcher (Bộ lọc đường dẫn)
+    Thay vì để Middleware chạy ở mọi yêu cầu (gây tốn tài nguyên), bạn nên dùng matcher để giới hạn nó chỉ chạy ở các trang cụ thể.
+    + Hỗ trợ biểu thức chính quy (Regex).
+    + Có thể lọc bỏ các file tĩnh (ảnh, favicon) để tối ưu hiệu suất.
+
+- NextResponse
+    Đây là công cụ chính để bạn điều khiển luồng đi:
+    + NextResponse.redirect(): Chuyển hướng người dùng sang trang khác.
+    + NextResponse.rewrite(): Thay đổi nội dung hiển thị nhưng vẫn giữ nguyên URL cũ (hữu ích cho A/B Testing hoặc Proxy).
+    + NextResponse.next(): Cho phép request đi tiếp.
+    + Sửa đổi Headers và Cookies.
+
+
+- Vị trí của Middleware trong vòng đời Request
+    Middleware nằm ở tầng Edge Network. Khi một người dùng gửi yêu cầu truy cập một trang web, yêu cầu đó không đi thẳng vào máy chủ ứng dụng ngay lập tức mà sẽ đi qua các bước sau:
+    + Người dùng gửi Request: Click vào một đường link hoặc nhập URL.
+    + Khớp Matcher: Next.js kiểm tra xem URL đó có nằm trong danh sách matcher mà bạn cấu hình trong file middleware.ts hay không.
+    + Thực thi Middleware: Nếu khớp, code trong Middleware sẽ chạy trên Edge Runtime.
+    + Xử lý Logic: Tại đây, bạn có thể kiểm tra Cookie, Header, hoặc thực hiện tính toán.
+    + Phản hồi từ Middleware: Middleware sẽ quyết định:
+        - Cho phép đi tiếp (next).
+        - Chặn và chuyển hướng (redirect).
+        - Thay đổi nội dung hiển thị mà không đổi URL (rewrite).
+    + Server/Static Files: Nếu được cho phép, yêu cầu mới thực sự chạm tới các Page, API Route hoặc tài nguyên tĩnh.
+
+- Tóm tắt luồng thực tế
+    + Request gửi đến (Muốn tải trang /admin).
+    + Next.js check Matcher: Có khớp không? (Có).
+    + Vào Middleware: Kiểm tra isLoggedIn.
+    + Kết quả:
+        - Chưa login -> Trả về lệnh Redirect('/login'). (Dừng lại tại đây, không tải file /admin).
+        - Đã login -> Gọi next().
+    + Tải file: Next.js tìm file app/admin/page.tsx, xử lý rồi mới gửi về cho người dùng.
+
+note :
+- dùng cookie thay cho ls 
+    + Middleware chạy ở phía Server, mà Server thì không thể đọc được LocalStorage.
+
+
+
+- **
+ luồng code middle mới Sửa
+ User F5 trang /admin:
+Middleware:
+Đọc cookie accessToken.
+verifyToken thấy hết hạn (do 15s).
+Thấy refreshToken còn hạn -> Gọi API http://localhost:4001/....
+Có newAccessToken -> Gán vào request (cho Layout) và response (cho Browser).
+Layout (app/(admin)/layout.tsx):
+await cookies().get("accessToken") -> Nhận được token mới (nhờ bước sửa NextResponse.next ở trên).
+verifySession -> Thành công -> Hiển thị trang Admin.
+Không bị Redirect về Login nữa.
+
+- đã sửa:
+    + middleware
+    + hydrateAuth 
+    + sửa tên accessToken trả về từ hàm refreshToken ở be
+    + sửa tên  newAccessToken -> accessToken trong axios interceptor cho đúng be
+    + group 2 admin và private -> thêm 2 layout tổng 
+
+    - lỗi hiện tại -> nếu chết accessToken -> vào 1 trang private sẽ bị lỗi mà không tự refreshToken -> mà phải reload trang nó ms update token mới

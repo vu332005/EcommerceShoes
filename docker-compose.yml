@@ -1,21 +1,22 @@
 version: "3.8"
 
 services:
+  # db
   postgres:
     image: postgres:16-alpine
-    container_name: giay_postgres_new_db # <--- Đổi tên container
+    container_name: giay_postgres_new_db
     restart: always
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: 123456 # <--- Đổi pass mới
+      POSTGRES_PASSWORD: 123456
       POSTGRES_DB: shoes_shop_db
     ports:
-      - "5433:5432" # <--- Giữ nguyên cổng 5433
+      - "5433:5432"
     volumes:
-      - ./data_fresh_v2:/var/lib/postgresql/data # <--- QUAN TRỌNG: Đổi tên folder khác hẳn
+      - ./data_fresh_v2:/var/lib/postgresql/data
 
-  # 2. Service Quản lý DB (pgAdmin - Tùy chọn)
-  # Giúp bạn xem dữ liệu bằng giao diện web thay vì dòng lệnh
+  # Service Quản lý DB (pgAdmin - Tùy chọn)
+  # Giúp xem dữ liệu bằng giao diện web thay vì dòng lệnh
   pgadmin:
     image: dpage/pgadmin4
     container_name: giay_pgadmin
@@ -27,3 +28,26 @@ services:
       - "5050:80" # Chạy pgAdmin ở cổng 5050
     depends_on:
       - postgres
+
+  # redis
+  redis:
+    image: redis:alpine
+    container_name: giay_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_data:/data
+
+  # REDIS COMMANDER (Giao diện quản lý Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: giay_redis_commander
+    restart: always
+    environment:
+      # Cấu hình kết nối: TênHienThi:HostDocker:Port
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis

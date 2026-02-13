@@ -37,7 +37,7 @@ export default function OrderCard({ order }: OrderCardProps) {
       className="shadow-sm border-none mb-4 hover:shadow-md transition-shadow bg-white"
       styles={{ body: { padding: "20px" } }}
     >
-      {/* 1. Header: Tên Shop & Trạng thái */}
+      {/*Header: Tên Shop & Trạng thái */}
       <div className="flex justify-between items-center mb-4">
         <Space>
           <ShopOutlined />
@@ -58,7 +58,7 @@ export default function OrderCard({ order }: OrderCardProps) {
 
       <Divider style={{ margin: "12px 0" }} />
 
-      {/* 2. Body: Danh sách sản phẩm */}
+      {/*Body: Danh sách sản phẩm */}
       <div className="space-y-4">
         {order.items.map((item: any) => {
           // Logic xử lý ảnh
@@ -115,18 +115,21 @@ export default function OrderCard({ order }: OrderCardProps) {
       <div className="flex flex-col items-end gap-4">
         <Space align="center">
           <Text type="secondary">Thành tiền:</Text>
-          <Title level={3} type="danger" style={{ margin: 0 }}>
+          <Title
+            level={4}
+            style={{ margin: 0, color: "lab(33.7174% 55.8993 41.0293)" }}
+          >
             {formatPrice(order.totalAmount)}
           </Title>
         </Space>
 
-        <Space>
+        {/* <Space>
           {order.status === "pending" && <Button danger>Hủy đơn hàng</Button>}
           {order.status === "confirmed" && (
             <Button type="primary">Mua lại</Button>
           )}
           <Button>Xem chi tiết</Button>
-        </Space>
+        </Space> */}
       </div>
     </Card>
   );

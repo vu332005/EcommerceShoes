@@ -64,7 +64,7 @@ export default function NewArrivals() {
 
           <Link
             href="/products"
-            className="group flex items-center gap-2 font-medium text-blue-600 transition-colors hover:text-blue-700"
+            className="group flex items-center gap-2 font-medium text-black transition-colors hover:text-stone-600"
           >
             Xem tất cả{" "}
             <ArrowRight

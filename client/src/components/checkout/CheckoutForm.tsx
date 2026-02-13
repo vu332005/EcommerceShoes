@@ -15,17 +15,15 @@ interface CheckoutFormProps {
     address: string;
     city: string;
     district: string;
-    ward: string;
     note: string;
   };
-  errors: {
+  errors?: {
     email?: string;
     fullName?: string;
     phone?: string;
     address?: string;
     city?: string;
     district?: string;
-    ward?: string;
   };
   handleInputChange: (
     e: React.ChangeEvent<
@@ -168,20 +166,6 @@ export default function CheckoutForm({
                 value={formData.district}
                 onChange={handleInputChange}
                 placeholder="Cầu Giấy"
-              />
-            </Form.Item>
-          </Col>
-          <Col span={8}>
-            <Form.Item
-              label="Phường/Xã"
-              validateStatus={safeErrors.ward ? "error" : ""}
-              help={safeErrors.ward}
-            >
-              <Input
-                name="ward"
-                value={formData.ward}
-                onChange={handleInputChange}
-                placeholder="Dịch Vọng"
               />
             </Form.Item>
           </Col>

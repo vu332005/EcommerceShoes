@@ -7,7 +7,7 @@ import Stripe from "stripe";
 
 // Khởi tạo Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-    apiVersion: "2024-12-18.acacia" as any, // Hoặc phiên bản mới nhất
+    apiVersion: "2024-12-18.acacia" as any, 
 });
 
 const paymentRepo = AppDataSource.getRepository(Payment);

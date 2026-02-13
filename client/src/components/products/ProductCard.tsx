@@ -46,13 +46,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         </p>
 
         <Link href={`/products/${product.id}`}>
-          <h3 className="mt-2 text-base font-semibold text-gray-900 line-clamp-2 hover:text-blue-600">
+          <h3 className="mt-2 text-base font-semibold text-gray-900 line-clamp-2 hover:text-stone-600">
             {product.name}
           </h3>
         </Link>
 
         <div className="mt-auto flex items-end justify-between pt-4">
-          <p className="text-lg font-bold text-blue-600">
+          <p className="text-lg font-bold text-red-800">
             {formatPrice(product.price)}
           </p>
         </div>

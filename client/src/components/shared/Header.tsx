@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { logout } from "@/redux/features/authSlice";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, User, LogOut, Menu as MenuIcon } from "lucide-react";
+import {
+  ShoppingCart,
+  User,
+  LogOut,
+  ShieldCheck,
+  Menu as MenuIcon,
+} from "lucide-react";
 import { Drawer, ConfigProvider, Avatar, Button } from "antd";
 
 export default function Header() {
@@ -49,6 +55,17 @@ export default function Header() {
         >
           Sản phẩm
         </Link>
+        {/* --- NÚT QUẢN TRỊ (CHỈ HIỆN VỚI ADMIN) --- */}
+        {/* {isAuthenticated && user?.role === "admin" && ( */}
+        <Link
+          href="/admin/products"
+          onClick={closeMenu}
+          className={`${isMobile ? mobileClasses : desktopClasses} flex items-center gap-1`}
+          style={!isMobile ? { color: "#FFD700" } : {}}
+        >
+          {!isMobile} Quản trị
+        </Link>
+        {/* )} */}
       </>
     );
   };
@@ -61,9 +78,9 @@ export default function Header() {
         },
       }}
     >
-      <header className="sticky top-0 z-50 w-full bg-[#E31D2B] text-white shadow-md font-sans">
+      <header className="sticky top-0 z-50 w-full bg-[#aa000c] text-white shadow-md font-sans">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          {/* 1. LOGO */}
+          {/* LOGO */}
           <Link
             href="/"
             className="text-2xl font-black text-white uppercase tracking-wider italic"
@@ -71,12 +88,12 @@ export default function Header() {
             SHOES SHOP
           </Link>
 
-          {/* 2. DESKTOP MENU */}
+          {/* DESKTOP MENU */}
           <nav className="hidden gap-6 lg:flex">
             <NavLinks />
           </nav>
 
-          {/* 3. ACTIONS */}
+          {/* ACTIONS */}
           <div className="flex items-center gap-4">
             <Link
               href="/cart"
@@ -99,7 +116,7 @@ export default function Header() {
                 <>
                   <Link
                     href="/user/orders"
-                    className="flex items-center gap-2 rounded-full bg-[#bf1622] px-3 py-1.5 border border-white/20 hover:bg-[#a3131d] transition-colors"
+                    className="flex items-center gap-2 rounded-full bg-[#aa000c] px-3 py-1.5 border border-white/20 hover:bg-[#bd010e] transition-colors"
                   >
                     <Avatar
                       src={user.avatar_url}
@@ -139,7 +156,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* 4. MOBILE DRAWER */}
+        {/* MOBILE DRAWER */}
         <Drawer
           title={
             <span className="text-xl font-black text-[#E31D2B] uppercase tracking-wider italic">

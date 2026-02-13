@@ -14,20 +14,21 @@ export class User {
   @Column()
   password!: string;
 
-  // 👇 SỬA Ở ĐÂY: Thêm length: 100 cho khớp với DB
   @Column({ name: "full_name", nullable: true, length: 100 })
   fullName!: string;
 
-  // 👇 SỬA Ở ĐÂY: Thêm length: 20 cho khớp với DB
   @Column({ nullable: true, length: 20 })
   phone!: string;
 
-  // 👇 SỬA Ở ĐÂY: Đổi type thành 'text' cho khớp với DB
   @Column({ name: "avatar_url", nullable: true, type: "text" })
   avatarUrl!: string;
 
-  @Column({ default: "customer", length: 20 }) // Role trong DB hình như cũng có giới hạn 20
+  @Column({ default: "customer", length: 20 }) 
   role!: string;
+
+  // check
+  @Column({ name: "login_type", default: "local", length: 20 })
+  loginType!: string; // Giá trị sẽ là 'local' hoặc 'facebook'
 
   @Column({ name: "refresh_token", nullable: true, type: "text" })
   refreshToken!: string | null;

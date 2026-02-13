@@ -162,7 +162,7 @@ export default function ProductInfo({
   return (
     <div className="mt-8 md:mt-0">
       <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-      <p className="mt-2 text-xl font-semibold text-blue-600">
+      <p className="mt-2 text-xl font-semibold text-red-800">
         {formatPrice(product.price)}
       </p>
 

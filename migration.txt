@@ -1,0 +1,38 @@
+        migration trong typeORM
+
+    Phân biệt synchronize: true và Migrations:
+- Synchronize: TypeORM tự động sửa DB mỗi khi server chạy. (Chỉ dùng cho Dev/Prototyping. Tuyệt đối cấm ở Production vì nguy cơ mất dữ liệu).
+- Migrations: Lưu lịch sử thay đổi DB thành các file code(file migration), an toàn, có thể version control (Git). -> chỉ thay đổi trên db khi ta chạy các file migration
+
+    Quy trình tự động (Auto-generation Workflow) -> đây là quy trình hoạt động chính của migration
+- Quy trình 3 bước:
+    + Bước 1: Sửa file Entity (ví dụ: thêm cột age vào User).
+    + Bước 2: Chạy lệnh migration:generate. TypeORM sẽ tạo ra một file chứa code SQL thay đổi.
+    + Bước 3: Chạy lệnh migration:run để áp dụng thay đổi vào DB.
+- Lệnh migration:revert:
+    + cách hoàn tác (undo) lần migration gần nhất nếu lỡ tay chạy sai.
+- Đọc hiểu file Migration: (cấu trúc file)
+    + Hiểu cấu trúc file sinh ra: + Class có 2 hàm up() (thực thi thay đổi) 
+                                  + down() (hoàn tác thay đổi).
+
+    các lệnh chính 
+Mục đích,       Lệnh (Command),         Khi nào dùng?
+Tự động tạo,    * migration:generate,     Khi bạn đã sửa Entity và muốn TypeORM tự sinh SQL.
+Tạo thủ công,   migration:create,       "Khi muốn viết SQL tay (di trú dữ liệu, logic phức tạp)."
+Chạy migration, * migration:run,          Áp dụng các thay đổi mới vào Database. -> chạy hàm up
+Hoàn tác,       * migration:revert,       "Khi lỡ chạy migration bị lỗi, muốn quay lại bước trước."
+Xem trạng thái, migration:show,         "Xem migration nào đã chạy, migration nào chưa."
+
+- cách để dùng các lệnh này
+    - các lệnh này bản chất rất dài -> nên ta sẽ cấu hình ở trong package.json để có thể dùng gọn như trên kia
+    - npm run migration:generate -- src/migrations/TenMigration
+    
+    luồng hoạt động
+- Luồng tạo Migration tự động (migration:generate)
+Đây là tính năng "ăn tiền" của TypeORM, giúp bạn không phải viết SQL tay.
+    + Input 1 - Entity: TypeORM đọc code trong các file Entity hiện tại của bạn (VD: User.ts vừa thêm cột age).
+    + Input 2 - Database: TypeORM đọc cấu trúc hiện tại của Database thực tế.
+    + So sánh: Nó thấy Entity có age nhưng DB chưa có.
+    + Output: Nó sinh ra file migration mới:
+        + Hàm up(): Chứa lệnh ALTER TABLE "user" ADD "age" integer... -> chạy với câu lệnh run -> áp dụng những thay đổi mới lên db *
+        + Hàm down(): Chứa lệnh ngược lại ALTER TABLE "user" DROP COLUMN "age"... -> chạy với câu lệnh revert -> revert lại các thay đổi sau khi đã run *

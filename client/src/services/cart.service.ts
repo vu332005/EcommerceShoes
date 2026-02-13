@@ -82,7 +82,7 @@ export const cartService = {
     const token = typeof window !== 'undefined' ? localStorage.getItem("accessToken") : null;
 
     if (token && itemId) {
-      await axiosInstance.put("/cart/update", { itemId, quantity });
+      await axiosInstance.put("/cart/update", { itemId: variantId, quantity });
     } else {
       const cart = await cartService.getCart();
       const item = cart.find((i) => i.variantId === variantId);
@@ -97,7 +97,7 @@ export const cartService = {
     const token = typeof window !== 'undefined' ? localStorage.getItem("accessToken") : null;
 
     if (token && itemId) {
-      await axiosInstance.delete(`/cart/remove/${itemId}`);
+      await axiosInstance.delete(`/cart/remove/${variantId}`);
     } else {
       let cart = await cartService.getCart();
       cart = cart.filter((i) => i.variantId !== variantId);

@@ -1,4 +1,7 @@
 import axios from "axios";
+import Cookies from "js-cookie";
+import { store } from "@/redux/store"; 
+import { updateAccessToken, logout } from "@/redux/features/authSlice";
 
 // Tạo instance
 const axiosInstance = axios.create({
@@ -49,17 +52,27 @@ axiosInstance.interceptors.response.use(
         );
 
         // 3. Lấy token mới từ response (Backend trả về: { data: { newAccessToken: "..." } })
-        const { newAccessToken } = response.data.data;
+        const { accessToken } = response.data.data;
+
+        store.dispatch(updateAccessToken(accessToken));
 
         // 4. Lưu token mới vào LocalStorage
-        localStorage.setItem("accessToken", newAccessToken);
+        localStorage.setItem("accessToken", accessToken);
+
+        Cookies.set("accessToken", accessToken, { 
+            expires: 15/86400, // 1 ngày (hoặc setup theo logic của bạn)
+            path: "/" 
+        });
 
         // 5. Cập nhật header cho request đang bị lỗi
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         
         // Cập nhật default header cho các request sau này
-        axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
-
+        if (originalRequest.headers) {
+            originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+        } else {
+            originalRequest.headers = { Authorization: `Bearer ${accessToken}` };
+        }
         // 6. Thực hiện lại request ban đầu
         return axiosInstance(originalRequest);
 

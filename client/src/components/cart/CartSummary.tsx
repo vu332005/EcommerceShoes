@@ -15,7 +15,7 @@ export default function CartSummary({ items }: Props) {
 
   const totalPrice = items.reduce(
     (total, item) => total + item.price * item.quantity,
-    0
+    0,
   );
 
   const shippingFee = 35000;
@@ -36,7 +36,7 @@ export default function CartSummary({ items }: Props) {
         subTotal: totalPrice,
         shippingFee: shippingFee,
         finalTotal: finalPrice,
-      })
+      }),
     );
 
     router.push("/checkout");
@@ -63,7 +63,7 @@ export default function CartSummary({ items }: Props) {
         <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
           <span className="text-lg font-bold text-gray-900">Tổng cộng</span>
           <div className="text-right">
-            <p className="text-xl font-bold text-red-600">
+            <p className="text-xl font-bold text-red-800">
               {formatPrice(finalPrice)}
             </p>
             <p className="text-xs text-gray-400">(Đã bao gồm VAT)</p>

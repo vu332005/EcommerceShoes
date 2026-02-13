@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import Cookies from "js-cookie"; // 
 
 export interface User {
   id: number;
@@ -7,6 +8,9 @@ export interface User {
   role: string;
   avatar_url?: string;
   phone?: string;
+  address?: string;
+  city?: string;
+  district?: string;
 }
 
 interface AuthState {
@@ -42,13 +46,39 @@ const authSlice = createSlice({
         localStorage.setItem("refreshToken", action.payload.refreshToken); 
         localStorage.setItem("user", JSON.stringify(action.payload.user));
       }
+
+      // --- THÊM PHẦN NÀY CHO MIDDLEWARE ---
+        // Lưu AccessToken vào Cookie để Middleware đọc được
+        Cookies.set("accessToken", action.payload.accessToken, { 
+            expires: 15/86400, // 1 ngày
+            path: "/",
+            secure: process.env.NODE_ENV === "production" // Chỉ https nếu ở production
+        });
+        // Middleware cần cái này để xin cấp lại token mới
+        Cookies.set("refreshToken", action.payload.refreshToken, { 
+            expires: 7,
+            path: "/", 
+            secure: process.env.NODE_ENV === "production" 
+    });
     },
+
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload };
+        if (typeof window !== "undefined") { // Kiểm tra để tránh lỗi nếu code này chạy trên Server (Next.js SSR).
+          localStorage.setItem("user", JSON.stringify(state.user)); // lưu vào ls -> để tránh khi reload -> Redux (state.user) chỉ sống trên RAM. Nếu sửa tên xong, Redux đã cập nhật, giao diện đã đổi. Nhưng nếu F5 (tải lại trang), Redux bị reset.
+        }
+      }
+    },
+
     // Action này dùng để cập nhật lại accessToken mới sau khi refresh thành công
     updateAccessToken: (state, action: PayloadAction<string>) => {
         state.accessToken = action.payload;
         if (typeof window !== "undefined") {
             localStorage.setItem("accessToken", action.payload);
+            Cookies.set("accessToken", state.accessToken, { expires: 15/86400, path: "/" });
         }
+        
     },
     logout: (state) => {
       state.user = null;
@@ -60,29 +90,33 @@ const authSlice = createSlice({
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken"); 
         localStorage.removeItem("user");
+
+        //  Xóa sạch Cookie 
+        Cookies.remove("accessToken", { path: '/' }); // Nhớ remove đúng path
+        Cookies.remove("refreshToken", { path: '/' });
       }
     },
     hydrateAuth: (state) => {
       if (typeof window !== "undefined") {
-        const token = localStorage.getItem("accessToken");
-        const rToken = localStorage.getItem("refreshToken"); 
+        const localToken = localStorage.getItem("accessToken");
+        const cookieToken = Cookies.get("accessToken"); 
         const userStr = localStorage.getItem("user");
 
-        if (token && userStr) {
+        // Ưu tiên Token từ Cookie (vì Middleware có thể vừa refresh xong)
+        let finalToken = localToken;
+        if (cookieToken && cookieToken !== localToken) {
+             finalToken = cookieToken;
+             localStorage.setItem("accessToken", finalToken || "");
+        }
+
+        if (finalToken && userStr) {
           try {
-            const parsedUser = JSON.parse(userStr);
-            if (parsedUser && typeof parsedUser === "object") {
-              state.accessToken = token;
-              state.refreshToken = rToken; 
-              state.user = parsedUser;
-              state.isAuthenticated = true;
-            }
-          } catch (error) {
-            console.error("Lỗi dữ liệu LocalStorage:", error);
-            localStorage.clear();
-            state.user = null;
-            state.accessToken = null;
-            state.isAuthenticated = false;
+            state.accessToken = finalToken;
+            state.refreshToken = localStorage.getItem("refreshToken"); 
+            state.user = JSON.parse(userStr);
+            state.isAuthenticated = true;
+          } catch (e) {
+            console.error("Hydrate error", e);
           }
         }
       }
@@ -90,5 +124,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginSuccess, logout, hydrateAuth, updateAccessToken } = authSlice.actions;
+export const { loginSuccess, logout, hydrateAuth, updateAccessToken, updateUser } = authSlice.actions;
 export default authSlice.reducer;

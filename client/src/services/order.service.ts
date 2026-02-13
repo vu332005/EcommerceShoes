@@ -18,4 +18,29 @@ export const orderService = {
     const res = await axiosInstance.get("/order/my-orders");
     return res.data.data;
   },
+
+  // Lấy tất cả đơn hàng (có phân trang, lọc trạng thái, tìm kiếm)
+  getAllOrdersAdmin: async (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    keyword?: string;
+  }) => {
+    const res = await axiosInstance.get("/order/admin/all", { params });
+    return res.data;
+  },
+
+  // Cập nhật trạng thái đơn hàng 
+  updateOrderStatus: async (id: number, status: string) => {
+    const res = await axiosInstance.put(`/order/admin/${id}/status`, {
+      status,
+    });
+    return res.data;
+  },
+
+  // Xem chi tiết đơn hàng (Admin xem)
+  getOrderDetailAdmin: async (id: number) => {
+    const res = await axiosInstance.get(`/order/admin/${id}`);
+    return res.data;
+  },
 };

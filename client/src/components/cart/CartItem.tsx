@@ -100,7 +100,7 @@ export default function CartItem({ item, onUpdateQty, onRemove }: Props) {
           </div>
 
           <div className="text-right">
-            <p className="text-base font-bold text-blue-600">
+            <p className="text-base font-bold text-red-800">
               {formatPrice(item.price * item.quantity)}
             </p>
             {item.quantity > 1 && (

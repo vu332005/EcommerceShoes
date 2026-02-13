@@ -1,0 +1,608 @@
+checkout
+
+// import { AppDataSource } from "../config/db";
+// import { Cart } from "../models/Cart";
+// import { Order } from "../models/Order";
+// import { OrderItem } from "../models/OrderItem";
+// import { Payment } from "../models/Payment";
+// import { AppError } from "../utils/AppError";
+// import { createStripePaymentIntent } from "./paymentService"; 
+
+// export const createOrderService = async (
+//     userId: number,
+//     shippingData: { name: string; phone: string; address: string },
+//     paymentMethod: string
+// ) => {
+//     /*
+//     - dùng createQueryRunner -> để khi bị lỗi 1 trong bất kì bước nào khi tạo đơn hàng -> sẽ kh bị lưu phải đơn hàng lỗi
+//     vd : - khi lưu order thành công -> đến khi gọi stripe bị lỗi -> code văng lỗi -> hậu quả ta lưu 1 đơn hàng mà k có thông tin thanh toán -> đơn hàng lỗi
+    
+//     await queryRunner.startTransaction():
+//         + nó gửi tín hiệu begin tới db
+//         + thông báo các cái gửi lên (lưu đơn, thanh toán, ...) -> không lưu vĩnh viễn vội
+//         -> khi nào commit thì mới lưu - còn rollback thì xóa sạch
+//     */
+//     const queryRunner = AppDataSource.createQueryRunner();// tạo ra 1 ng vận chuyển riêng biệt
+//     await queryRunner.connect(); // thiết lập dg dây kết nối riêng với db
+//     await queryRunner.startTransaction(); // bắt đầu transaction
+
+//     try {
+//         // Lấy Cart
+//         const cart = await queryRunner.manager.findOne(Cart, {
+//             where: { userId },
+//             relations: ["items", "items.variant", "items.variant.product", "items.variant.tags"]
+//         });
+
+//         if (!cart || cart.items.length === 0) {
+//             throw new AppError("Giỏ hàng trống", 400);
+//         }
+
+//         // Tính tổng tiền & Tạo snapshottting để lưu lịch sử dlieu
+//         let totalAmount = 0;
+//         const orderItems: OrderItem[] = [];
+
+//         for (const cartItem of cart.items) {
+//             const unitPrice = Number(cartItem.variant.priceOverride || cartItem.variant.product.basePrice); // giá ưu tiên nếu có
+//             totalAmount += unitPrice * cartItem.quantity;
+
+//             // tạo ra 1 chuỗi mô tả ngắn để lưu vào hóa đơn
+//             const attributes = cartItem.variant.tags
+//                 .filter(t => t.type === 'color' || t.type === 'size')
+//                 .map(t => t.name).join(" / ");
+
+//             // data snapshotting
+//             const orderItem = new OrderItem();
+//             orderItem.variantId = cartItem.variantId;
+//             orderItem.productName = cartItem.variant.product.name;
+//             orderItem.variantDescription = attributes;
+//             orderItem.quantity = cartItem.quantity;
+//             orderItem.priceAtPurchase = unitPrice;
+//             orderItems.push(orderItem);
+//         }
+
+//         // Tạo Order - lưu order vào db
+//         const order = new Order();
+//         order.userId = userId;
+//         order.totalAmount = totalAmount;
+//         order.shippingFee = 0; // 
+//         order.shippingName = shippingData.name;
+//         order.shippingPhone = shippingData.phone;
+//         order.shippingAddress = shippingData.address;
+//         order.status = "pending";
+//         order.items = orderItems;
+//         // lưu tạm
+//         const savedOrder = await queryRunner.manager.save(order); 
+//         /*
+//         Gán quan hệ (order.items = orderItems):
+//             orderItems là mảng các món hàng bạn vừa tạo trong vòng lặp trước đó (new OrderItem()...).
+//             Lúc này, các orderItem này chưa hề có orderId (vì Order đã được lưu đâu mà có ID?).
+//         queryRunner.manager.save(order):
+//         - Khi bạn lưu order, TypeORM đủ thông minh để thấy bên trong nó có chứa danh sách items.
+//             + Bước A: Lưu Order vào DB trước -> Sinh ra order.id (ví dụ: ID = 100).
+//             + Bước B: Tự động lấy ID = 100 đó, điền vào trường orderId của tất cả các orderItem trong mảng, rồi lưu tiếp danh sách items vào bảng order_items.
+//         -> Kết quả: Bạn không cần phải viết code lưu Order rồi thủ công lưu từng Item. TypeORM làm hộ bạn nhờ tính năng Cascade.
+//         */
+
+//         // Tạo Payment Record
+//         const payment = new Payment();
+//         payment.orderId = savedOrder.id; // lkien với order ms lưu ở trên
+//         payment.paymentMethod = paymentMethod;
+//         payment.amount = totalAmount;
+//         payment.status = "pending";
+        
+//         // logic stripe -> tạo paymentItent - với số tiền cần ttoan và mã đơn hàng trong db
+//         let clientSecret = null;
+//         if (paymentMethod === "STRIPE") {
+//             const intent = await createStripePaymentIntent(totalAmount, savedOrder.id); 
+//             payment.transactionId = intent.transactionId; // Lưu transactionId 
+//             clientSecret = intent.clientSecret;
+//         }
+
+//         await queryRunner.manager.save(payment); //save payment
+
+//         // Xóa Cart
+//         await queryRunner.manager.delete("cart_items", { cartId: cart.id });
+
+//         await queryRunner.commitTransaction(); // chính thức save dlieu xuống db
+
+//         return {
+//             orderId: savedOrder.id,
+//             paymentId: payment.id,
+//             totalAmount: totalAmount,
+//             clientSecret: clientSecret, // Trả clientSecret cho frontend để tạo thanh toán stripe
+//             message: "Tạo đơn hàng thành công"
+//         };
+
+//     } catch (error) {
+//         await queryRunner.rollbackTransaction();
+//         throw error;
+//     } finally {
+//         await queryRunner.release();
+//     }
+// };
+
+
+
+cart
+
+
+// import { AppDataSource } from "../config/db";
+// import { Cart } from "../models/Cart";
+// import { CartItem } from "../models/CartItem";
+// import { ProductVariant } from "../models/ProductVariant";
+// import { AppError } from "../utils/AppError";
+
+// const cartRepo = AppDataSource.getRepository(Cart);
+// const cartItemRepo = AppDataSource.getRepository(CartItem);
+// const variantRepo = AppDataSource.getRepository(ProductVariant);
+
+// // lấy dsach item trong cart
+// export const getCartService = async (userId: number) => {
+//   let cart = await cartRepo.findOne({
+//     where: { userId },
+//     relations: [ // left join
+//       "items",                  
+//       "items.variant", 
+//       "items.variant.product", 
+//       "items.variant.images", 
+//       "items.variant.tags"
+//     ],
+//     order: {
+//       items: { id: "ASC" }     
+//     }
+//   });
+
+//   // tạo cart nếu ng dùng chưa có
+//   if (!cart) {
+//     cart = cartRepo.create({ userId });
+//     await cartRepo.save(cart);
+//     cart.items = [];          
+//   }
+
+//   return cart;
+// };
+
+// // thêm item vào cart
+// export const addToCartService = async (userId: number, variantId: number, quantity: number) => {
+  
+//   // Check sản phẩm
+//   const variant = await variantRepo.findOneBy({ id: variantId });
+//   if (!variant) throw new AppError("Sản phẩm không tồn tại", 404);
+
+//   // Lấy Cart - nếu có r thì tìm trên user id - nếu chưa có thì tạo (lazy creation)
+//   let cart = await cartRepo.findOne({ where: { userId } });
+//   if (!cart) {
+//     cart = cartRepo.create({ userId });
+//     await cartRepo.save(cart);
+//   }
+
+//   // Check Item / nếu có r -> chỉ tăng số lượng / nếu chưa có -> tạo 1 cart item mới
+//   const existingItem = await cartItemRepo.findOne({
+//     where: { cartId: cart.id, variantId: variantId } 
+//   });
+
+//   if (existingItem) {
+//     existingItem.quantity += quantity;
+//     await cartItemRepo.save(existingItem);
+//   } else {
+//     const newItem = cartItemRepo.create({
+//       cartId: cart.id,
+//       variantId: variantId,     
+//       quantity: quantity
+//     });
+//     await cartItemRepo.save(newItem);
+//   }
+
+//   return await getCartService(userId); //  trả về toàn bộ giỏ hàng sau khi đã thêm
+// };
+
+// // cập nhật item trong cart
+// export const updateCartItemService = async (userId: number, itemId: number, quantity: number) => {
+//   if (quantity <= 0) throw new AppError("Số lượng phải lớn hơn 0", 400);
+
+//   const item = await cartItemRepo.findOne({
+//     where: { id: itemId },
+//     relations: ["cart"]
+//   });
+
+//   // kiểm tra quyền sở hữu - tránh IDOR
+//   if (!item || item.cart.userId !== userId) {
+//     throw new AppError("Item không tồn tại", 404);
+//   }
+
+//   item.quantity = quantity;
+//   await cartItemRepo.save(item);
+
+//   return await getCartService(userId);
+// };
+
+// // xóa item khỏi cart
+// export const removeCartItemService = async (userId: number, itemId: number) => {
+//   const item = await cartItemRepo.findOne({
+//     where: { id: itemId },
+//     relations: ["cart"]
+//   });
+
+//   if (!item || item.cart.userId !== userId) {
+//     throw new AppError("Item không tồn tại", 404);
+//   }
+
+//   await cartItemRepo.remove(item);
+//   return await getCartService(userId);
+// };
+
+// // đồng bộ
+// export const syncCartService = async (userId: number, items: { variantId: number, quantity: number }[]) => {
+//   if (!items || items.length === 0) return await getCartService(userId);
+
+//   await Promise.all(items.map(async (item) => {
+//     try {
+//       await addToCartService(userId, item.variantId, item.quantity);
+//     } catch (e) {
+//       console.error(`Lỗi sync item ${item.variantId}`, e);
+//     }
+//   }));
+
+//   return await getCartService(userId);
+// };
+
+
+
+banner
+"use client";
+
+import React from "react";
+import { Carousel, ConfigProvider } from "antd";
+import Image from "next/image";
+
+// Dữ liệu Slide (Đã bỏ link)
+const SLIDE_IMAGES = [
+  {
+    id: 1,
+    image: "/images/banner-1.jpg",
+  },
+  {
+    id: 2,
+    image: "/images/banner-2.jpg",
+  },
+  {
+    id: 3,
+    image: "/images/banner-3.jpg",
+  },
+];
+
+export default function Banner() {
+  return (
+    <ConfigProvider
+      theme={{
+        components: {
+          Carousel: {
+            dotWidth: 40,
+            dotHeight: 4,
+            dotActiveWidth: 60,
+          },
+        },
+      }}
+    >
+      {/* Container chính: Bỏ class h-[400px] để chiều cao tự động theo ảnh */}
+      <div className="relative w-full">
+        <Carousel autoplay autoplaySpeed={5000} effect="fade" infinite>
+          {SLIDE_IMAGES.map((slide) => (
+            <div key={slide.id} className="w-full">
+              {/* Thay đổi quan trọng:
+                1. Bỏ thẻ <Link> bao ngoài.
+                2. Bỏ prop "fill" và "object-cover".
+                3. Thêm width/height tượng trưng (tỉ lệ chuẩn 16:9 hoặc theo ảnh thật của bạn).
+                4. style={{ width: '100%', height: 'auto' }}: Giúp ảnh luôn full màn hình chiều ngang, 
+                   chiều dọc tự co giãn -> Không bao giờ bị cắt ảnh.
+              */}
+              <Image
+                src={slide.image}
+                alt={`Banner ${slide.id}`}
+                width={1920} // Chiều rộng gốc của ảnh banner (ví dụ 1920px)
+                height={800} // Chiều cao gốc của ảnh banner (ví dụ 800px)
+                className="w-full h-auto" // Tailwind: width 100%, height auto
+                priority={slide.id === 1}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            </div>
+          ))}
+        </Carousel>
+      </div>
+    </ConfigProvider>
+  );
+}
+
+
+getproduct service - chưa fix lỗi thiếu brand
+
+
+export const getProducts = async (params: ProductFilterParams) => {
+
+  const productRepo = AppDataSource.getRepository(Product); // tạo repo để lm vc với bảng product
+  const { page = 1, limit = 12, keyword, min_price, max_price, sort, tag_ids, category_id } = params; // destructuring và để mặc định nếu vào trang chủ không chọn gì -> lấy trang đầu hiển thị 12 sp
+
+  const query = productRepo.createQueryBuilder("product")
+    .leftJoinAndSelect("product.category", "category")
+    .select([
+      "product.id", "product.name", "product.basePrice", 
+      "product.thumbnailUrl", "product.handle", "product.createdAt",
+      "category.name", "category.id"
+    ]);
+
+  // filter
+  if (keyword) query.andWhere("product.name ILIKE :keyword", { keyword: `%${keyword}%` }); // nếu ng dùng có lọc theo điều kiện này -> thêm where vào câu lệnh sql
+  if (min_price) query.andWhere("product.basePrice >= :min", { min: min_price });
+  if (max_price) query.andWhere("product.basePrice <= :max", { max: max_price });
+  if (category_id) query.andWhere("product.categoryId = :catId", { catId: category_id });
+  
+  if (tag_ids) {
+    const tagIdsArray = tag_ids.split(",").map(id => Number(id));
+    query.innerJoin("product.variants", "variant")
+         .innerJoin("variant.tags", "tag")
+         .andWhere("tag.id IN (:...tags)", { tags: tagIdsArray });
+  }
+
+  // sort
+  if (sort === 'price_asc') query.orderBy("product.basePrice", "ASC");
+  else if (sort === 'price_desc') query.orderBy("product.basePrice", "DESC");
+  else query.orderBy("product.createdAt", "DESC");
+
+  // pagination
+  const skip = (page - 1) * limit;
+  query.skip(skip).take(limit);
+
+  const [data, total] = await query.getManyAndCount();
+
+  return {
+    data,
+    meta: { total, page, last_page: Math.ceil(total / limit) }
+  };
+};
+
+
+middleware
+
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose"; // Dùng thư viện jose cho Edge Runtime
+
+// d/n các Route cần bảo vệ
+const privatePaths = [ "/checkout", "/profile", "/user"];
+const authPaths = ["/login", "/register"]; // Nếu đã login thì không vào đây nữa
+const adminPaths = ["/admin"]; 
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl; // check ng dùng di đâu
+  
+  // Lấy token từ Cookie
+  const accessToken = request.cookies.get("accessToken")?.value;
+  
+  // chuyển secret key từ chữ -> Uint8Array
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+  let userRole = null;
+  let isAuthenticated = false;
+
+  // Verify Token nếu có
+  if (accessToken) {
+    try {
+      const { payload } = await jwtVerify(accessToken, secret);
+      userRole = payload.role; 
+      isAuthenticated = true;
+    } catch (error) {
+      // Token lỗi hoặc hết hạn -> coi như chưa login
+      isAuthenticated = false;
+    }
+  }
+
+  // case 1 - Đã login mà cố vào trang Login/Register -> Đẩy về Home
+  // some() -> chạy vòng lặp qua từng phần tử của mảng - Chỉ cần một cái khớp là nó trả về true
+  if (isAuthenticated && authPaths.some((path) => pathname.startsWith(path))) {
+    return NextResponse.redirect(new URL("/", request.url));
+    /*
+    - new URL(path, base)
+      path bạn muốn chuyển tới: /      
+      request.url hiện tại là: http://localhost:3000/login?ref=123
+      cách chạy: 
+        Lấy Protocol: http
+        Lấy Host: localhost:3000
+        Thay thế phần đuôi bằng Path mới: /
+        Kết quả: http://localhost:3000/
+      */
+  }
+
+  // case 2 - Truy cập trang Admin
+  if (adminPaths.some((path) => pathname.startsWith(path))) {
+    if (!isAuthenticated) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (userRole !== "admin") { // Login rồi nhưng không phải admin -> Đẩy về trang chủ 
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
+  // case 3 - Truy cập trang Private 
+  if (privatePaths.some((path) => pathname.startsWith(path))) {
+    if (!isAuthenticated) {
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
+  return NextResponse.next();
+}
+
+// Config để Middleware chỉ chạy trên các route cần thiết (Tối ưu hiệu năng) -> nếu k d/n fillter -> nó sẽ chạy trên mọi req gửi đến server
+export const config = {
+  matcher: [
+    "/admin/:path*", 
+    "/cart/:path*", 
+    "/checkout/:path*", 
+    "/login",
+    "/register",
+    "/user/:path*"
+  ],
+};
+/*
+/admin/:path*:
+  :path: Là tên biến (đặt tên gì cũng được) -> đại diện cho phần phía sau
+  * : Nghĩa là "không có hoặc có nhiều cấp"
+  Kết quả: Nó sẽ khớp với:
+    /admin 
+    /admin/dashboard 
+    /admin/users/edit/123 
+*/
+
+
+hydrateuath
+
+
+    hydrateAuth: (state) => {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("accessToken");
+        const rToken = localStorage.getItem("refreshToken"); 
+        const userStr = localStorage.getItem("user");
+
+        if (token && userStr) {
+          try {
+            const parsedUser = JSON.parse(userStr);
+            if (parsedUser && typeof parsedUser === "object") {
+              state.accessToken = token;
+              state.refreshToken = rToken; 
+              state.user = parsedUser;
+              state.isAuthenticated = true;
+
+              // Tự động hồi phục Cookie nếu bị mất
+              if (!Cookies.get("accessToken")) {
+                 Cookies.set("accessToken", token, { expires: 15/86400, path: "/" });
+              }
+              if (rToken && !Cookies.get("refreshToken")) {
+                 Cookies.set("refreshToken", rToken, { expires: 7, path: "/" });
+              }
+            }
+            
+          } catch (error) {
+            console.error("Lỗi dữ liệu LocalStorage:", error);
+            localStorage.clear();
+            state.user = null;
+            state.accessToken = null;
+            state.isAuthenticated = false;
+          }
+        }
+      }
+    },
+
+
+Đây là một câu hỏi rất hay về kiến trúc hệ thống và tối ưu hiệu suất. Ý tưởng của bạn là chuyển gánh nặng "ghép dữ liệu" (hydration) từ Backend (BE) sang Frontend (FE) để tận dụng khả năng cache của trình duyệt hoặc CDN.
+
+Câu trả lời ngắn gọn là: Có thể nhanh hơn về mặt trải nghiệm người dùng (Perceived Performance), nhưng rủi ro về độ trễ mạng (Network Latency) là rất cao nếu làm không khéo.
+
+Hãy cùng phân tích sâu hơn 2 phương án:
+
+Phương án 1: Cách bạn đang làm (Server-Side Hydration)
+
+BE lấy ID từ Redis -> BE query SQL lấy chi tiết -> BE ghép lại -> Trả về FE cục to.
+
+Ưu điểm:
+
+Chỉ tốn 1 Request: FE chỉ cần gọi GET /cart. Tiết kiệm thời gian thiết lập kết nối (TCP Handshake, SSL).
+
+Tối ưu Database: Bạn đang dùng IN (:...ids) trong SQL. Đây là cách truy vấn tối ưu nhất (Batch Query). Dù giỏ hàng có 100 món, SQL cũng chỉ chạy 1 câu lệnh.
+
+Nhược điểm:
+
+Nếu SQL chậm, toàn bộ API /cart bị chậm. Redis nhanh cũng vô nghĩa vì phải chờ ông SQL.
+
+Response payload (dung lượng phản hồi) có thể lớn.
+
+Phương án 2: Ý tưởng của bạn (Client-Side Hydration + Promise.all)
+
+BE trả về list ID từ Redis (cực nhẹ) -> FE nhận list -> FE gọi Promise.all bắn N request lấy chi tiết từng sản phẩm.
+
+Ưu điểm lý thuyết:
+
+API /cart phản hồi "ngay lập tức" (vì chỉ đọc Redis). App cảm giác rất mượt.
+
+Các API GET /variant/:id có thể được cache ở trình duyệt (HTTP Cache) hoặc CDN. Nếu user F5 lại trang, trình duyệt lấy từ cache đĩa, không cần gọi server nữa.
+
+Nhược điểm chết người (Thực tế):
+
+Vấn đề "Connection Overhead": Nếu giỏ hàng có 10 món, bạn bắn 10 request cùng lúc. Trình duyệt (Chrome/Firefox) thường giới hạn tối đa 6 connection song song đến cùng 1 domain.
+
+-> 4 request còn lại phải xếp hàng chờ (Queueing).
+
+-> Tổng thời gian = Thời gian request chậm nhất + Thời gian chờ.
+
+Rủi ro mạng: Mạng user yếu thì việc gửi 10 request nhỏ sẽ chậm và dễ lỗi hơn gửi 1 request to.
+
+GIẢI PHÁP TỐI ƯU NHẤT (Hybrid Approach)
+
+Thay vì bắt FE chịu khổ (bắn nhiều request) hoặc bắt SQL chịu khổ (query liên tục), hãy dùng Redis để cache luôn thông tin sản phẩm.
+
+Bạn giữ nguyên logic ghép dữ liệu ở Backend, nhưng thay vì ghép từ SQL, bạn ghép từ Redis.
+
+Quy trình đề xuất:
+
+Lấy Cart từ Redis (như cũ).
+
+Lấy danh sách variantId.
+
+Dùng Redis MGET (Multi Get) để lấy thông tin chi tiết sản phẩm (Key ví dụ: product:101, product:102).
+
+Nếu món nào thiếu trong Redis -> Lúc đó mới query SQL và set ngược lại vào Redis (Cache Aside Pattern).
+
+Ghép lại và trả về. 
+
+
+getCartService
+
+
+export const getCartService = async (userId: number) => {
+  const key = getCartKey(userId);
+
+  // Kết quả trả về dạng Object: { "101": "2", "205": "1" }
+  const cartHash = await redis.hgetall(key);
+
+  // Nếu object rỗng -> Trả về giỏ rỗng
+  if (!cartHash || Object.keys(cartHash).length === 0) {
+    return { id: `redis_${userId}`, userId, items: [] };
+  }
+
+  // Chuyển đổi Object của Redis thành Mảng chuẩn: [{ variantId: 101, quantity: 2 }, ...]
+  const cartItems = Object.entries(cartHash).map(([vId, qty]) => ({
+    variantId: Number(vId), // Key của Hash luôn là string, phải ép kiểu về Number
+    quantity: Number(qty),
+  }));
+
+  // Hydrate: Lấy thông tin chi tiết sản phẩm từ DB -> để đảm bảo giá/tên luôn mới nhất
+  const variantIds = cartItems.map((i) => i.variantId);
+
+  const variants = await variantRepo.createQueryBuilder("variant")
+    .leftJoinAndSelect("variant.product", "product")
+    .leftJoinAndSelect("variant.images", "images")
+    .leftJoinAndSelect("variant.tags", "tags")
+    // vc này giúp tốn duy nhất 1 câu truy cấn -> lấy ttin cả giỏ hàng (thay vì chạy vòng for n query từng spham)
+    .where("variant.id IN (:...ids)", { ids: variantIds })  // (:...ids) -> sau : báo cho typeOrm là 1 tham số / { ids: variantIds } truyền vào tham số -> tìm kiếm trong các id nằm trong mảng -> chỉ cần 1 câu lệnh sql là đủ 
+    .getMany(); // -> thực thi và trả về nh` kq
+
+  //  merge dữ liệu Redis với dữ liệu DB
+  const populatedItems = cartItems.map((item) => {
+    const variantInfo = variants.find((v) => v.id === item.variantId);// tìm ttin chi tiết của hàng trong giỏ hàng ở bảng chi tiết sp mới lấy từ db
+    if (!variantInfo) return null;
+
+    return {
+      id: `item_${item.variantId}`, // ID fake -> vì fe cần id mà redis k lưu theo key -> fake id để fe k bị lỗi 
+      variantId: item.variantId,
+      quantity: item.quantity,
+      variant: variantInfo,
+    };
+  }).filter(Boolean); // loại bỏ null
+
+  return {
+    id: `redis_${userId}`,
+    userId,
+    items: populatedItems,
+  };
+};

@@ -1,7 +1,10 @@
 import axiosInstance from "@/lib/axios";
 import { ProductParams, ProductResponse, Product } from "@/types/product";
 
+
 export const productService = {
+
+// USER
   getProducts: async (params: ProductParams): Promise<ProductResponse> => {
     try {
       const res = await axiosInstance.get("/product", { params });
@@ -41,7 +44,7 @@ export const productService = {
     }
   },
 
-getProductDetail: async (id: number): Promise<Product | null> => {
+  getProductDetail: async (id: number): Promise<Product | null> => {
     try {
       const res = await axiosInstance.get(`/product/${id}`);
       const item = res.data.data;
@@ -80,4 +83,61 @@ getProductDetail: async (id: number): Promise<Product | null> => {
   //     return [];
   //   }
   // }
+
+//ADMIN
+
+  getAllProductsAdmin: async () => {
+    // Gọi vào route admin bạn vừa sửa trong backend
+    const res = await axiosInstance.get("/product/admin/all"); 
+    return res.data; 
+  },
+
+  createProduct: async (data: any) => {
+    // Axios Instance đã tự động attach Token nếu bạn config đúng
+    const res = await axiosInstance.post("/product", data);
+    return res.data;
+  },
+
+  updateProduct: async (id: number, data: any) => {
+    const res = await axiosInstance.put(`/product/${id}`, data);
+    return res.data;
+  },
+
+  deleteProduct: async (id: number) => {
+    const res = await axiosInstance.delete(`/product/${id}`);
+    return res.data;
+  },
+
+  createVariant: async (productId: number, data: any) => {
+    const res = await axiosInstance.post(`/product/${productId}/variants`, data);
+    return res.data;
+  },
+
+  updateVariant: async (variantId: number, data: any) => {
+    const res = await axiosInstance.put(`/product/variants/${variantId}`, data);
+    return res.data;
+  },
+  
+  deleteVariant: async (variantId: number) => {
+    const res = await axiosInstance.delete(`/product/variants/${variantId}`);
+    return res.data;
+  },
+
+//UPLOAD CDN
+  uploadImageService : async (file: File) => {
+  // json chỉ tốt chứa text-> nó không thể chứa dữ liệu nhị phân (binary) của file ảnh một cách hiệu quả
+  // -> FormData là công cụ để gửi dữ liệu form & file từ frontend lên backend theo chuẩn multipart/form-data
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await axiosInstance.post("/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data.url; // Trả về link ảnh từ Cloudinary
+}
+// note:
+//-  formData.append(KEY) ⇔ upload.single(KEY)
+
 };

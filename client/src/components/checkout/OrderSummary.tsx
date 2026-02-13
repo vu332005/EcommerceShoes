@@ -45,8 +45,8 @@ export default function OrderSummary({
                   item.thumbnailUrl && item.thumbnailUrl.startsWith("http")
                     ? item.thumbnailUrl
                     : item.thumbnailUrl
-                    ? `/images/${item.thumbnailUrl.replace("/images/", "")}`
-                    : "/images/placeholder.png"
+                      ? `/images/${item.thumbnailUrl.replace("/images/", "")}`
+                      : "/images/placeholder.png"
                 }
                 alt={item.productName}
                 fill
@@ -95,7 +95,7 @@ export default function OrderSummary({
         {/* Tổng cộng */}
         <div className="flex justify-between items-center pt-2">
           <span className="text-base font-bold text-gray-900">Tổng cộng</span>
-          <span className="text-xl font-bold text-red-600">
+          <span className="text-xl font-bold text-red-800">
             {formatPrice(finalTotal)}
           </span>
         </div>

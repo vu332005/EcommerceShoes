@@ -1,0 +1,23 @@
+// base
++ HOC
++ middleware của nextJs
+
++   page.tsx, layout.tsx,..	 Next.js (Tự động)	Bắt buộc export default	 vd: export default function Page() {}
+    components/Card.tsx	     Bạn (Thủ công)	    Tùy ý (default hoặc named)  vd: export const Card = ...
+
++ type orm
++ truyền prop hàm - callback - gọi hàm thg - callback
+
+// kiến thức mới trong dự án
++ upload của antd - ảnh preview (vd page updateProfile) 
++ form - form.item của antd (vd page updateProfile)
++ configProvider của antd (vd page updateProfile)
++ hydratedAuth
++ colunms - table của antd (vd productTable)
++ modal - (vd productFormModal)
++ luồng đi dlieu và hoạt động của adminproduct page
++ (nextJS)để tên ảnh favicon trong cấp đầu của app -> tự động lm favicon của web
+
+
+err
++ Bộ đếm" (Sequence) của database đang bị lệch so với dữ liệu thực tế.

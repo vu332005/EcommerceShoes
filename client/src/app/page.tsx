@@ -1,7 +1,7 @@
 import Banner from "@/components/home/Banner";
 import FeaturedCategories from "@/components/home/FeaturedCategories";
 import NewArrivals from "@/components/home/NewArrivals"; // <--- Import mới
-import { Truck, ShieldCheck, Headphones } from "lucide-react";
+import { Truck, ShieldCheck, Headphones, RefreshCcw } from "lucide-react";
 
 export default function Home() {
   return (
@@ -13,7 +13,7 @@ export default function Home() {
       <section className="border-b bg-gray-50 py-10">
         <div className="container mx-auto grid grid-cols-1 gap-8 px-4 sm:grid-cols-3">
           <div className="flex items-center justify-center gap-4 text-center sm:text-left">
-            <div className="rounded-full bg-blue-100 p-3 text-blue-600">
+            <div className="rounded-full bg-blue-50 p-3 text-black">
               <Truck size={24} />
             </div>
             <div>
@@ -22,16 +22,18 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center justify-center gap-4 text-center sm:text-left">
-            <div className="rounded-full bg-green-100 p-3 text-green-600">
-              <ShieldCheck size={24} />
+            <div className="rounded-full bg-green-50 p-3 text-black">
+              <RefreshCcw size={24} />
             </div>
             <div>
-              <h4 className="font-bold text-gray-900">Cam kết chính hãng</h4>
-              <p className="text-sm text-gray-500">Hoàn tiền 100% nếu fake</p>
+              <h4 className="font-bold text-gray-900">Dịch vụ ưu đãi</h4>
+              <p className="text-sm text-gray-500">
+                Đổi hàng 30 ngày, bảo hành 12 tháng
+              </p>
             </div>
           </div>
           <div className="flex items-center justify-center gap-4 text-center sm:text-left">
-            <div className="rounded-full bg-purple-100 p-3 text-purple-600">
+            <div className="rounded-full bg-purple-50 p-3 text-black">
               <Headphones size={24} />
             </div>
             <div>

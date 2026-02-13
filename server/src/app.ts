@@ -22,8 +22,9 @@ app.post(
   stripeWebhook // Gọi trực tiếp controller
 );
 
-app.use(express.json()); // Parse body JSON
-app.use(express.urlencoded({ extended: true }));
+// Tăng giới hạn lên 50MB (hoặc tuỳ ý) để chấp nhận ảnh Base64 **!
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use((req, res, next) => {
     console.log(`[DEBUG] Request đến: ${req.method} ${req.url}`);
