@@ -606,3 +606,290 @@ export const getCartService = async (userId: number) => {
     items: populatedItems,
   };
 };
+
+
+productservice
+
+
+export const updateProduct = async (id: number, data: any) => {
+  //check xem sp cần thêm tồn tại k
+  const product = await productRepo.findOneBy({ id });
+  if (!product) throw new AppError("Sản phẩm không tồn tại", 404);
+
+  // Merge dữ liệu mới vào -> merge sẽ tự động lấy những field trong data đè lên product -> field data nào kco giữ nguyên -> thay cho việc phải viết thủ công: if (data.name) product.name = data.name; if (data.price) ...
+  productRepo.merge(product, data);
+  
+  return await productRepo.save(product); // trường hợp object product đã có id (đã tồn tại), hàm save sẽ tự hiểu là chạy lệnh UPDATE, không phải INSERT
+};
+
+export const deleteProduct = async (id: number) => {
+  const result = await productRepo.delete(id);
+  if (result.affected === 0) throw new AppError("Sản phẩm không tồn tại", 404);
+  return result;
+};
+
+//variant
+
+export const createVariant = async (productId: number, data: any) => {
+  const { sku, stock, price, color, size, brand, images } = data;
+
+  // Check SKU trùng
+  const existingSku = await variantRepo.findOneBy({ sku });
+  if (existingSku) throw new AppError(`SKU '${sku}' đã tồn tại`, 400);
+
+  // Xử lý Tags (Màu/ Size/ Brand )
+  const tags: Tag[] = [];
+  
+  //color
+  if (color) { // nếu ng dùng có nhập màu thì ms chạy
+    // tìm màu xem có trong bảng tag ch -> nếu ch -> tạo mới và lưu vào bảng tag -> dù tìm thấy hay tạo mới -> đẩy vào mảng tags 
+    let colorTag = await tagRepo.findOneBy({ name: color, type: "color" });
+    if (!colorTag) {
+      colorTag = tagRepo.create({ name: color, type: "color" });
+      await tagRepo.save(colorTag);
+    }
+    tags.push(colorTag);
+  }
+
+  if (size) {
+    let sizeTag = await tagRepo.findOneBy({ name: size, type: "size" });
+    if (!sizeTag) {
+      sizeTag = tagRepo.create({ name: size, type: "size" });
+      await tagRepo.save(sizeTag);
+    }
+    tags.push(sizeTag);
+  }
+
+  if (brand) {
+    let t = await tagRepo.findOneBy({ name: brand, type: "brand" });
+    if (!t) { t = await tagRepo.save(tagRepo.create({ name: brand, type: "brand" })); }
+    tags.push(t);
+  }
+
+  // Tạo Variant
+  const newVariant = variantRepo.create({
+    product: { id: productId }, // Dùng object quan hệ thay vì productId trần
+    sku,
+    stockQuantity: Number(stock),
+    priceOverride: price ? Number(price) : undefined, 
+    tags: tags 
+  });
+
+  await variantRepo.save(newVariant);
+
+  // Xử lý ảnh
+  if (images && images.length > 0) { // check xem có ảnh nào đc gửi lên k
+    const imgEntities = images.map((url: string, index: number) => 
+      imageRepo.create({
+        variant: { id: newVariant.id }, // gán ảnh vào biến thể mới tạo ở trên -> lý do ph save variant trc r ms save ảnh
+        imageUrl: url,
+        isThumbnail: index === 0 
+      })
+    );
+    await imageRepo.save(imgEntities); // lưu toàn bộ ảnh xuống cùng 1 lúc
+  }
+
+  return newVariant;
+};
+
+export const updateVariant = async (variantId: number, data: any) => {
+  const { sku, stock, price, color, size, brand, images } = data;
+
+  const variant = await variantRepo.findOne({
+    where: { id: variantId },
+    relations: ["tags", "images"]
+  });
+
+  if (!variant) throw new AppError("Biến thể không tồn tại", 404);
+
+  // Update thông tin cơ bản
+  if (sku) variant.sku = sku;
+  if (stock !== undefined) variant.stockQuantity = Number(stock);
+  if (price !== undefined) variant.priceOverride = Number(price);
+  /*
+  lý do dùng !== undefined
+    - Vì số lượng tồn kho (stock) có thể là số 0.
+    - Nếu viết if (stock) thì số 0 bị coi là false -> Code sẽ bỏ qua không cập nhật.
+    - !== undefined đảm bảo là dù user gửi số 0 thì vẫn cập nhật.
+  */
+
+  // Update Tags
+  if (color || size || brand)  {
+    const newTags: Tag[] = [];
+    
+    // Color
+    
+    // -> quyết định xem varitant này sẽ mang màu gì
+    /*
+    color: Là màu MỚI người dùng gửi lên (ví dụ: "Xanh").
+    variant.tags.find(...): Là màu CŨ đang có trong database (ví dụ: "Đỏ").
+    - || -> nếu ng dùng có gửi color -> màu mới -> sẽ lấy gtri mới - còn k thì dùng màu cũ để k bị trống màu 
+    */ 
+    const colorName = color || variant.tags.find(t => t.type === 'color')?.name;
+    // find or create
+    if (colorName) {
+        let t = await tagRepo.findOneBy({ name: colorName, type: "color" });
+        if (!t) t = await tagRepo.save(tagRepo.create({ name: colorName, type: "color" }));
+        newTags.push(t);
+    }
+
+    // Size
+    const sizeName = size || variant.tags.find(t => t.type === 'size')?.name;
+    if (sizeName) {
+        let t = await tagRepo.findOneBy({ name: sizeName, type: "size" });
+        if (!t) t = await tagRepo.save(tagRepo.create({ name: sizeName, type: "size" }));
+        newTags.push(t);
+    }
+
+    const brandName = brand || variant.tags.find(t => t.type === 'brand')?.name;
+    if (brandName) {
+        let t = await tagRepo.findOneBy({ name: brandName, type: "brand" });
+        if (!t) t = await tagRepo.save(tagRepo.create({ name: brandName, type: "brand" }));
+        newTags.push(t);
+    }
+    
+    // vì ở đây ta thay đổi toàn bộ ds tag cũ = dsach tag mới -> vì thế nên ở trên kể cả ng dùng k sửa màu thì ta vẫn phải tìm và push màu cũ vào nếu k khi lưu variant sẽ bị thiếu
+    variant.tags = newTags;
+  }
+
+  await variantRepo.save(variant); // vì id variant đã có -> save ở đây là nó sẽ update -> so sánh object variant hiện tại trong bộ nhớ với dữ liệu trong database. Nó tạo ra câu lệnh SQL để cập nhật các cột bị thay đổi như sku, stock_quantity, price_override.
+  // đồng thời save này nó cũng sẽ Cập nhật quan hệ **!!
+
+  // Update Images -> ở đây ta sẽ xóa toàn bộ ảnh lquan đi r xây lại -> vì (difing) so sánh sự tdoi khá lằng nhằng 
+  /*
+  Xử lý thứ tự ảnh (Reordering) 
+    - Giả sử bạn có 3 ảnh: [A, B, C]. Người dùng muốn đổi thứ tự thành: [C, A, B].
+      + Nếu "chỉ thêm mới": Bạn sẽ thấy không có ảnh nào mới cả (vẫn là 3 ảnh đó). Bạn phải viết code để update lại trường order hoặc logic sắp xếp cho từng ảnh. Rất phức tạp.
+      + Nếu "đập đi xây lại": Bạn xóa sạch. Sau đó lưu lại lần lượt C -> A -> B. Database tự động lưu theo thứ tự mới (hoặc theo ID tăng dần mới). Việc hiển thị lên Frontend sẽ đúng ngay lập tức theo thứ tự người dùng mong muốn.
+  */
+  if (images) {
+    await imageRepo.delete({ variant: { id: variant.id } });
+    
+    const imgEntities = images.map((url: string, index: number) => 
+      imageRepo.create({
+        variant: { id: variant.id }, 
+        imageUrl: url,
+        isThumbnail: index === 0
+      })
+    );
+    await imageRepo.save(imgEntities);
+  }
+
+  return variant;
+};
+
+export const deleteVariant = async (variantId: number) => {
+  const result = await variantRepo.delete(variantId);
+  if (result.affected === 0) throw new AppError("Biến thể không tồn tại", 404);
+  return result;
+};
+
+
+
+export const createOrderService = async (
+    userId: number,
+    shippingData: { name: string; phone: string; address: string },
+    paymentMethod: string
+) => {
+    const key = getCartKey(userId);
+
+    const cartHash = await redis.hgetall(key);
+    // Kiểm tra rỗng
+    if (!cartHash || Object.keys(cartHash).length === 0) {
+        throw new AppError("Giỏ hàng trống", 400);
+    }
+    // Convert từ Hash { "101": "2" } sang Array [{ variantId: 101, quantity: 2 }]
+    const cartItemsRedis = Object.entries(cartHash).map(([vId, qty]) => ({
+        variantId: Number(vId),
+        quantity: Number(qty)
+    }));
+
+    // Lấy thông tin giá từ DB (để bảo mật giá)
+    const variantRepo = AppDataSource.getRepository(ProductVariant);
+    const variantIds = cartItemsRedis.map(i => i.variantId);
+    
+    const dbVariants = await variantRepo.find({
+        where: { id: require("typeorm").In(variantIds) },
+        relations: ["product", "tags"]
+    });
+
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+        let totalAmount = 0;
+        const orderItems: OrderItem[] = [];
+
+        // Duyệt qua Redis items để tạo OrderItems
+        for (const item of cartItemsRedis) {
+            const variantInfo = dbVariants.find(v => v.id === item.variantId);
+            if (!variantInfo) continue; 
+
+            const unitPrice = Number(variantInfo.priceOverride || variantInfo.product.basePrice);
+            totalAmount += unitPrice * item.quantity;
+
+            const attributes = variantInfo.tags
+                .filter(t => t.type === 'color' || t.type === 'size')
+                .map(t => t.name).join(" / ");
+
+            const orderItem = new OrderItem();
+            orderItem.variantId = item.variantId;
+            orderItem.productName = variantInfo.product.name;
+            orderItem.variantDescription = attributes;
+            orderItem.quantity = item.quantity;
+            orderItem.priceAtPurchase = unitPrice;
+            orderItems.push(orderItem);
+        }
+
+        if (orderItems.length === 0) throw new AppError("Sản phẩm không khả dụng", 400);
+
+        // Tạo Order
+        const order = new Order();
+        order.userId = userId;
+        order.totalAmount = totalAmount;
+        order.shippingFee = 0;
+        order.shippingName = shippingData.name;
+        order.shippingPhone = shippingData.phone;
+        order.shippingAddress = shippingData.address;
+        order.status = "pending";
+        order.items = orderItems; // TypeORM sẽ tự save items
+
+        const savedOrder = await queryRunner.manager.save(order);
+
+        // Tạo Payment
+        const payment = new Payment();
+        payment.orderId = savedOrder.id;
+        payment.paymentMethod = paymentMethod;
+        payment.amount = totalAmount;
+        payment.status = "pending";
+
+        let clientSecret = null;
+        if (paymentMethod === "STRIPE") {
+            const intent = await createStripePaymentIntent(totalAmount, savedOrder.id);
+            payment.transactionId = intent.transactionId;
+            clientSecret = intent.clientSecret;
+        }
+
+        await queryRunner.manager.save(payment);
+
+        await queryRunner.commitTransaction();
+        // Commit: Báo cáo rằng mọi thao tác lưu DB (Order, OrderItem, Payment) đều đã an toàn. Lúc này dữ liệu mới thực sự được ghi chết vào Ổ cứng.
+
+        // QUAN TRỌNG: Xóa giỏ hàng trong REDIS sau khi đặt thành công
+        await redis.del(key);
+
+        return {
+            orderId: savedOrder.id,
+            totalAmount,
+            clientSecret,
+            message: "Tạo đơn hàng thành công"
+        };
+
+    } catch (error) {
+        await queryRunner.rollbackTransaction();
+        throw error;
+    } finally {
+        await queryRunner.release();
+    }
+};

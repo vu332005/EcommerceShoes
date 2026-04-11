@@ -2,7 +2,7 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rootRouter from "./routes"; 
-import { stripeWebhook } from "./controllers/orderController"; // <--- Import controller
+import { stripeWebhook } from "./controllers/orderController"; 
 
 const app: Express = express();
 
@@ -36,12 +36,12 @@ app.use("/api/v1", rootRouter);
 
 // 3. Health Check
 app.get("/", (req: Request, res: Response) => {
-  res.status(200).json({ message: "Server is running 🚀" });
+  res.status(200).json({ message: "Server is running " });
 });
 
 // XỬ LÝ LỖI TỔNG
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error("🔥 ERROR LOG:", err);
+    console.error(" ERROR LOG:", err);
     const statusCode = err.statusCode || 500;
     const status = err.status || 'error';
 

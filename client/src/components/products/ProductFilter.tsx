@@ -35,15 +35,13 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
   const pathname = usePathname();
   const { replace } = useRouter();
 
-  // State quản lý mở Drawer trên Mobile (Mới thêm)
+  // State quản lý mở Drawer trên Mobile
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-  // xử lý url (Giữ nguyên logic của bạn)
+  // xử lý url
   const updateParams = (newParams: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams);
-
     params.set("page", "1"); // Reset về trang 1
-
     // cập nhật url mới
     /*
       - Object.entries -> chuyển obj thành 1 mảng các cặp key,value
@@ -59,7 +57,6 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
         params.delete(key);
       }
     });
-
     // đẩy url mới lên trình duyệt
     replace(`${pathname}?${params.toString()}`);
   };
@@ -76,7 +73,6 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
   );
 
   // handle event
-
   // sort
   const handleSortCheck = (value: string, checked: boolean) => {
     // Nếu checked = true -> Chọn giá trị đó
@@ -293,7 +289,7 @@ export default function ProductFilter({ brands, categories }: FilterProps) {
         </div>
       </Drawer>
 
-      {/* GIAO DIỆN DESKTOP: Sidebar cố định (Giữ nguyên như cũ) */}
+      {/* GIAO DIỆN DESKTOP: Sidebar cố định */}
       <div className="hidden lg:block bg-white rounded-lg p-4 shadow-sm border border-gray-100">
         {renderFilterContent()}
       </div>

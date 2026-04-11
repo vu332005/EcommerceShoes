@@ -37,7 +37,7 @@ interface CheckoutFormProps {
 export default function CheckoutForm({
   user,
   formData,
-  errors = {}, // <--- SỬA LỖI TẠI ĐÂY (Thêm giá trị mặc định là object rỗng)
+  errors = {}, //
   handleInputChange,
   paymentMethod,
   setPaymentMethod,

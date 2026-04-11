@@ -39,8 +39,6 @@ export const getCartService = async (userId: number) => {
 
   const variantIds = cartItems.map((i) => i.variantId);
 
-  // --- BẮT ĐẦU ĐOẠN LOGIC MỚI (CACHE-ASIDE) ---
-
   // 2. Tạo danh sách key để MGET (Multi Get) từ Redis
   const productKeys = variantIds.map(id => getProductKey(id));
   
@@ -80,8 +78,6 @@ export const getCartService = async (userId: number) => {
         await pipeline.exec(); // Thực thi lưu cache
     }
   }
-
-  // --- KẾT THÚC LOGIC MỚI ---
 
   // 7. Ghép dữ liệu (Hydrate)
   const populatedItems = cartItems.map((item) => {

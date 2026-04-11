@@ -74,17 +74,72 @@ note :
 
 
 - **
- luồng code middle mới Sửa
- User F5 trang /admin:
-Middleware:
-Đọc cookie accessToken.
-verifyToken thấy hết hạn (do 15s).
-Thấy refreshToken còn hạn -> Gọi API http://localhost:4001/....
-Có newAccessToken -> Gán vào request (cho Layout) và response (cho Browser).
-Layout (app/(admin)/layout.tsx):
-await cookies().get("accessToken") -> Nhận được token mới (nhờ bước sửa NextResponse.next ở trên).
-verifySession -> Thành công -> Hiển thị trang Admin.
-Không bị Redirect về Login nữa.
+- luồng code middle mới Sửa
+    User F5 trang /admin:
+    Middleware:
+    Đọc cookie accessToken.
+    verifyToken thấy hết hạn (do 15s).
+    Thấy refreshToken còn hạn -> Gọi API http://localhost:4001/....
+    Có newAccessToken -> Gán vào request (cho Layout) và response (cho Browser).
+    Layout (app/(admin)/layout.tsx):
+    await cookies().get("accessToken") -> Nhận được token mới (nhờ bước sửa NextResponse.next ở trên).
+    verifySession -> Thành công -> Hiển thị trang Admin.
+    Không bị Redirect về Login nữa.
+
+- luồng chi tiết của refresh token
+    - khi ta call api refresh -> nhận được accesstoken mới: 
+    - làm 2 việc -> gắn accessToken cho req + gắn accessToken cho response
+        + 
+
+req và res trong nextJS
+    1. Vòng đời cơ bản của một lượt truy cập -> *việc gửi req và res này chỉ là việc trao đổi nằm trong nextJs và server của chính NextJs
+        Khi người dùng gõ yoursite.com/profile trên trình duyệt và nhấn Enter, quy trình sau diễn ra:
+            - Trình duyệt (Client) đóng gói một hộp bưu phẩm gọi là Request (req). Trong hộp này chứa:
+                + Địa chỉ muốn đến: /profile
+                + Thẻ căn cước: Cookies (chứa accessToken).
+                + Các thông tin khác: Loại trình duyệt đang dùng, ngôn ngữ, v.v.
+            - Hộp bưu phẩm này bay đến Server.
+            - Server nhận hộp bưu phẩm, mở ra xem, xử lý dữ liệu, rồi đóng gói một hộp bưu phẩm khác gọi là Response (res) gửi trả lại cho Trình duyệt (chứa mã HTML của trang Profile để hiển thị lên màn hình).
+    2. Vai trò của Middleware: Trạm gác chặn giữa đường
+        Trong Next.js, trước khi cái Request (req) kia kịp đi vào bên trong Tòa nhà văn phòng (nơi chứa layout.tsx, page.tsx, API routes), nó bắt buộc phải đi qua Trạm gác (Middleware).
+        Tại đây, Middleware sử dụng 2 công cụ chính là NextRequest và NextResponse.
+        A. Đối tượng req (NextRequest) - Đại diện cho Gói hàng đi VÀO
+            Nhiệm vụ: Middleware dùng req để đọc và kiểm tra xem khách là ai, mang theo gì.
+            Cách dùng phổ biến:
+                + Lấy URL người dùng đang truy cập: req.nextUrl.pathname
+                + Đọc Cookie người dùng gửi lên: req.cookies.get('accessToken')
+                + Đặc điểm sống còn: Gói hàng req gửi từ trình duyệt lên là chỉ đọc (Read-only). Trạm gác không thể xé vỏ hộp ra vứt cookie cũ đi để nhét trực tiếp cookie mới vào bên trong cái req gốc này được.
+        B. Đối tượng res (NextResponse) - Kẻ quyết định số phận
+            Sau khi soi xét xong req, Trạm gác (Middleware) phải ra quyết định. Đối tượng NextResponse chính là bộ đàm lệnh của Trạm gác. Nó có 4 mệnh lệnh chính:
+                + NextResponse.next() (Cho qua): "Mọi thứ hợp lệ, cho phép gói hàng Request này đi tiếp vào Tòa nhà (vào tới layout.tsx hoặc page.tsx)".
+                + NextResponse.redirect() (Đuổi đi chỗ khác): "Thẻ hết hạn rồi! Quay xe ra địa chỉ /login ngay!". Lệnh này tạo ra một gói Response trả thẳng về trình duyệt, bắt trình duyệt phải chuyển hướng. Gói Request ban đầu bị hủy, không bao giờ vào được tới Tòa nhà.
+                + NextResponse.rewrite() (Che mắt): Khách đòi vào /old-url, nhưng Trạm gác âm thầm dẫn khách vào /new-url mà trên thanh địa chỉ của khách vẫn hiện /old-url.
+            Sửa soạn gói Response (res.cookies.set): Trạm gác chuẩn bị sẵn một cái tem Set-Cookie, dán lên cái hộp Response sắp được trả về cho khách, để dặn khách: "Lần sau đến nhớ dùng thẻ mới này nhé".
+    3. Ghép nối lại: Cú "Lừa" ngoạn mục của Middleware
+            Bây giờ quay lại bài toán Refresh Token của bạn. Nếu Middleware chỉ đứng đọc req và tạo res độc lập thì không có gì để nói. Nhưng Next.js cho phép Middleware làm một việc phi thường: Nhân bản và chỉnh sửa Request trước khi cho đi qua.
+            Luồng hoạt động lúc này là:
+            Trạm gác nhận req (thấy Token cũ).
+            Trạm gác gọi điện (fetch) đi xin Token mới.
+            Trạm gác không thể tự ý nhét Token mới vào cái req cũ (vì nó read-only).
+            Do đó, Trạm gác dùng NextResponse.next() nhưng kẹp thêm một gói Request giả mạo (đã được dán Header mới chứa Token mới):
+        JavaScript
+        NextResponse.next({
+            request: { headers: requestHeaders } // Đây là gói hàng đã bị Trạm gác chỉnh sửa
+        })
+            Khi gói hàng này vào đến Tòa nhà (layout.tsx), các nhân viên bên trong mở ra kiểm tra hàm cookies() và vui vẻ đọc được cái Token mới toanh, đinh ninh rằng khách hàng gửi lên thẻ hợp lệ, mà không biết rằng Trạm gác vừa mới "chữa cháy" hộ.
+        
+        Tóm lại:
+            req là thứ Trình duyệt gửi cho Server.
+            res là thứ Server trả về cho Trình duyệt.
+            Middleware đứng ở giữa, hứng req để ra quyết định, và cấu hình res (chứa lệnh cho đi tiếp, bắt quay xe, hoặc gắn cookie cho trình duyệt).
+
+    note:
+    - Nếu là trang web tĩnh (HTML/CSS thuần): Server nhận Request /profile, nó lật ổ cứng tìm file profile.html có sẵn và nhét thẳng vào Response gửi về. Nhanh gọn.
+    - Và nếu là Next.js (Server-Side Rendering & App Router): Đây là lúc Next.js trổ tài. Khi Server nhận Request /profile, nó thực hiện một chuỗi phức tạp:
+        Cho Request đi qua Middleware (chạy trên Edge Runtime cực nhanh) để check vé.
+        Nếu vé hợp lệ, đẩy Request vào Layout và Page (Server Components).
+        Các Components này chọc vào Database lấy dữ liệu, sau đó render (vẽ) sẵn HTML ngay trên Server.
+        Cuối cùng, đóng gói cái HTML đã hoàn thiện đó vào Response và gửi trả về Trình duyệt.
 
 - đã sửa:
     + middleware
@@ -93,4 +148,4 @@ Không bị Redirect về Login nữa.
     + sửa tên  newAccessToken -> accessToken trong axios interceptor cho đúng be
     + group 2 admin và private -> thêm 2 layout tổng 
 
-    - lỗi hiện tại -> nếu chết accessToken -> vào 1 trang private sẽ bị lỗi mà không tự refreshToken -> mà phải reload trang nó ms update token mới
+- 

@@ -7,7 +7,6 @@ import ProductInfo from "./ProductInfo";
 import { useMemo } from "react";
 
 export default function ProductDetailClient({ product }: { product: Product }) {
-  //
   const [selectedColorId, setSelectedColorId] = useState<number | null>(null);
   console.log("Dữ liệu ảnh từ API:", product.images);
 
@@ -18,7 +17,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     //!!
     // Lọc ra các ảnh có color_id trùng với màu đang chọn HOẶC ảnh chung (color_id null)
     const imagesByColor = product.images.filter(
-      (img: any) => img.color === null || img.color?.id === selectedColorId
+      (img: any) => img.color === null || img.color?.id === selectedColorId,
     );
 
     // Nếu màu đó không có ảnh riêng, fallback về hiển thị tất cả

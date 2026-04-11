@@ -32,17 +32,17 @@ export const getList = catchAsync(async (req: Request, res: Response, next: Next
   });
 });
 
-//  Get New Arrivals
-export const getNewArrivals = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const limit = req.query.limit ? Number(req.query.limit) : 8;
-  const data = await productService.getNewArrivals(limit);
+// //  Get New Arrivals
+// export const getNewArrivals = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+//   const limit = req.query.limit ? Number(req.query.limit) : 8;
+//   const data = await productService.getNewArrivals(limit);
   
-  res.status(200).json({
-    status: 'success',
-    results: data.length,
-    data: data
-  });
-});
+//   res.status(200).json({
+//     status: 'success',
+//     results: data.length,
+//     data: data
+//   });
+// });
 
 // Get Detail
 export const getDetail = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -59,26 +59,26 @@ export const getDetail = catchAsync(async (req: Request, res: Response, next: Ne
   });
 });
 
-// Get Related
-export const getRelated = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const id = Number(req.params.id);
+// // Get Related
+// export const getRelated = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+//   const id = Number(req.params.id);
   
-  // Check sản phẩm gốc trước
-  const product = await productService.getProductDetail(id);
-  if (!product) {
-    return next(new AppError('Không tìm thấy sản phẩm gốc', 404));
-  }
+//   // Check sản phẩm gốc trước
+//   const product = await productService.getProductDetail(id);
+//   if (!product) {
+//     return next(new AppError('Không tìm thấy sản phẩm gốc', 404));
+//   }
 
-  const related = await productService.getRelatedProducts(id, product.categoryId);
+//   const related = await productService.getRelatedProducts(id, product.categoryId);
   
-  res.status(200).json({
-    status: 'success',
-    results: related.length,
-    data: related
-  });
-});
+//   res.status(200).json({
+//     status: 'success',
+//     results: related.length,
+//     data: related
+//   });
+// });
+
 const productRepo = AppDataSource.getRepository(Product);
-
 // ADMIN
 
 export const getAdminProducts = catchAsync(async (req: Request, res: Response) => {

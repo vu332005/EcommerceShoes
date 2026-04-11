@@ -9,6 +9,26 @@ import axios from "axios";
 const userRepository = AppDataSource.getRepository(User);
 const addressRepository = AppDataSource.getRepository(Address);
 
+/**
+ * Helper để map thông tin user kèm địa chỉ mặc định cho Frontend
+ */
+const mapUserWithAddress = (user: User) => {
+  const defaultAddress = user.addresses?.find(addr => addr.isDefault);
+  
+  return {
+    id: user.id,
+    email: user.email,
+    full_name: user.fullName,
+    phone: user.phone,
+    role: user.role,
+    avatar_url: user.avatarUrl,
+    address: defaultAddress?.addressLine || null,
+    city: defaultAddress?.city || null,
+    district: defaultAddress?.district || null,
+    created_at: user.createdAt
+  };
+};
+
 export const registerService = async (data: any) => {
   const { email, password, full_name, phone } = data;
 
@@ -34,7 +54,10 @@ export const registerService = async (data: any) => {
 export const loginService = async (data: any) => {
   const { email, password } = data;
 
-  const user = await userRepository.findOneBy({ email });
+  const user = await userRepository.findOne({ 
+    where: { email },
+    relations: ["addresses"] 
+  });
   if (!user) throw new AppError("Sai email hoặc mật khẩu", 401);
 
   const isMatch = await bcrypt.compare(password, user.password);
@@ -48,14 +71,7 @@ export const loginService = async (data: any) => {
   return {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
-    user_info: {
-      id: user.id,
-      email: user.email,
-      full_name: user.fullName, 
-      phone: user.phone,
-      role: user.role,
-      avatar_url: user.avatarUrl 
-    }
+    user_info: mapUserWithAddress(user)
   };
 };
 
@@ -87,19 +103,13 @@ export const logoutService = async (userId: number) => {
 };
 
 export const getMeService = async (userId: number) => {
-  const user = await userRepository.findOneBy({ id: userId });
+  const user = await userRepository.findOne({
+    where: { id: userId },
+    relations: ["addresses"]
+  });
   if (!user) throw new AppError("Không tìm thấy user", 404);
   
-  // Trả về dữ liệu đã map đúng tên field cho Frontend
-  return {
-    id: user.id,
-    email: user.email,
-    full_name: user.fullName, 
-    phone: user.phone,
-    role: user.role,
-    avatar_url: user.avatarUrl, 
-    created_at: user.createdAt
-  };
+  return mapUserWithAddress(user);
 };
 
 export const updateProfileService = async (userId: number, data: any) => {
@@ -206,8 +216,11 @@ export const loginFacebookService = async (accessToken: string) => {
 
 // xử lý db
 
-    // Tìm user trong DB theo email
-    let user = await userRepository.findOneBy({ email });
+    // Tìm user trong DB theo email (lấy kèm addresses)
+    let user = await userRepository.findOne({
+      where: { email },
+      relations: ["addresses"]
+    });
 
     // Nếu chưa có -> Tạo user mới
     if (!user) {
@@ -222,11 +235,12 @@ export const loginFacebookService = async (accessToken: string) => {
         fullName: name,
         avatarUrl: picture?.data?.url, // Lấy link ảnh
         role: "customer",
-        loginType: "facebook"
-        // facebookId: facebookId 
+        loginType: "facebook" // 
       });
 
       await userRepository.save(user);
+      // Sau khi tạo user mới thì addresses sẽ rỗng
+      user.addresses = [];
     } 
 
 // tạo JWT 
@@ -240,13 +254,7 @@ export const loginFacebookService = async (accessToken: string) => {
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      user_info: {
-        id: user.id,
-        email: user.email,
-        full_name: user.fullName,
-        role: user.role,
-        avatar_url: user.avatarUrl,
-      },
+      user_info: mapUserWithAddress(user),
     };
 
   } catch (error: any) {

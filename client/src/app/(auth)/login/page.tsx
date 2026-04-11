@@ -9,7 +9,6 @@ import { authService } from "@/services/authService";
 import { useAppDispatch } from "@/redux/hooks";
 import { loginSuccess } from "@/redux/features/authSlice";
 import toast, { Toaster } from "react-hot-toast";
-
 // Thư viện Facebook
 import FacebookLogin from "@greatsumini/react-facebook-login";
 
@@ -167,7 +166,7 @@ export default function LoginPage() {
             </Button>
           </Form.Item>
 
-          {/* --- KHU VỰC SOCIAL LOGIN (CHỈ CÒN FACEBOOK) --- */}
+          {/*  KHU VỰC LOGIN FACEBOOK  */}
           <div className="mb-6">
             <div className="relative flex py-2 items-center">
               <div className="flex-grow border-t border-gray-200"></div>

@@ -1,6 +1,6 @@
 import Banner from "@/components/home/Banner";
 import FeaturedCategories from "@/components/home/FeaturedCategories";
-import NewArrivals from "@/components/home/NewArrivals"; // <--- Import mới
+import NewArrivals from "@/components/home/NewArrivals";
 import { Truck, ShieldCheck, Headphones, RefreshCcw } from "lucide-react";
 
 export default function Home() {

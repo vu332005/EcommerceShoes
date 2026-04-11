@@ -26,17 +26,17 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || "admin",
   password: process.env.DB_PASSWORD || "123456",
   database: process.env.DB_NAME || "shoes_shop_db",
-  
+
   // QUAN TRỌNG: 
   // Vì bạn đã tạo bảng bằng tay bằng SQL, nên hãy set synchronize = false 
   // để tránh TypeORM tự ý sửa đổi cấu trúc bảng của bạn.
-  synchronize: false, 
-  
+  synchronize: false,
+
   logging: false,
   entities: [
     User, Address, Category,
     Product, ProductVariant, ProductImage,
-    Cart, CartItem, Order, OrderItem, Tag, Payment, 
+    Cart, CartItem, Order, OrderItem, Tag, Payment,
     PaymentHistory
   ],
   subscribers: [],
@@ -46,9 +46,9 @@ export const AppDataSource = new DataSource({
 export const connectDB = async () => {
   try {
     await AppDataSource.initialize();
-    console.log("🔥 PostgreSQL Connected Successfully!");
+    console.log(" PostgreSQL Connected Successfully!");
   } catch (error) {
-    console.error("❌ KẾT NỐI THẤT BẠI:", error);
+    console.error(" KẾT NỐI THẤT BẠI:", error);
     process.exit(1);
   }
 };

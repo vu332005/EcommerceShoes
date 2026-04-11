@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { getList, getNewArrivals, getDetail, getRelated } from "../controllers/productController";
+import { getList, getDetail } from "../controllers/productController";
 import { protect } from "../middlewares/authMiddleware";
 import { createProduct, updateProduct, deleteProduct, getAdminProducts, createVariant, updateVariant, deleteVariant } from "../controllers/productController";
 
 const router = Router();
 
 // --- ROUTE TĨNH & ADMIN ---
-router.get("/new-arrivals", getNewArrivals);
+// router.get("/new-arrivals", getNewArrivals);
 router.get("/admin/all", protect("admin"), getAdminProducts);
 router.post("/", protect("admin"), createProduct);
 
@@ -22,6 +22,6 @@ router.get("/", getList);
 router.put("/:id", protect("admin"), updateProduct);
 router.delete("/:id", protect("admin"), deleteProduct);
 router.get("/:id", getDetail);
-router.get("/:id/related", getRelated);
+// router.get("/:id/related", getRelated);
 
 export default router;

@@ -46,7 +46,6 @@ export default function RegisterPage() {
   };
 
   return (
-    // 1. Cấu hình Theme màu ĐỎ (#E31D2B) để đồng bộ với Header
     <ConfigProvider
       theme={{
         token: {
@@ -154,7 +153,7 @@ export default function RegisterPage() {
                     return Promise.resolve();
                   }
                   return Promise.reject(
-                    new Error("Mật khẩu xác nhận không khớp!")
+                    new Error("Mật khẩu xác nhận không khớp!"),
                   );
                 },
               }),

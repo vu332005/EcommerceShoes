@@ -52,8 +52,6 @@ export default function CheckoutPage() {
   const currentFinalTotal =
     checkoutInfo.subTotal > 0 ? checkoutInfo.finalTotal : fallbackFinalTotal;
 
-  // ----------------------------------------
-
   const handleInputChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };

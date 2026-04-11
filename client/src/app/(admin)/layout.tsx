@@ -7,14 +7,10 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // 1. Lấy token từ cookie (Server Side)
   const cookieStore = await cookies();
   const token = cookieStore.get("accessToken")?.value;
-
-  // 2. Verify token
   const session = await verifySession(token);
 
-  // 3. Logic bảo vệ nghiêm ngặt
   if (!session) {
     redirect("/login"); // Token không hợp lệ
   }

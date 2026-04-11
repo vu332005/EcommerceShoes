@@ -49,7 +49,7 @@ export default async function ProductsPage(props: PageProps) {
   let categories: Category[] = [];
 
   try {
-    console.log("🔍 Đang gọi API lấy sản phẩm với filters:", filters);
+    console.log(" Đang gọi API lấy sản phẩm với filters:", filters);
 
     // dùng promise all để gọi song song 3 api
     const result = await Promise.all([
