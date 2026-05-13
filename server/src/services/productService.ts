@@ -145,6 +145,14 @@ export const getProductDetail = async (id: number) => {
       "variants.tags", // Để lấy màu/size
       "variants.images", // Lấy ảnh của từng variant
     ],
+    order: {
+      variants: {
+        id: "ASC",
+        images: {
+          id: "ASC",
+        },
+      },
+    },
   });
 
   if (!product) return null;
@@ -366,6 +374,11 @@ export const updateVariant = async (variantId: number, data: any) => {
   const variant = await variantRepo.findOne({
     where: { id: variantId },
     relations: ["tags", "images"],
+    order: {
+      images: {
+        id: "ASC",
+      },
+    },
   });
 
   if (!variant) throw new AppError("Biến thể không tồn tại", 404);

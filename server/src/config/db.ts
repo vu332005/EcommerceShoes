@@ -16,6 +16,7 @@ import { OrderItem } from "../models/OrderItem";
 import { Payment } from "../models/Payment";
 import { PaymentHistory } from "../models/PaymentHistory";
 import { Tag } from "../models/Tag";
+import { ChatMessage } from "../models/ChatMessage";
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ export const AppDataSource = new DataSource({
     User, Address, Category,
     Product, ProductVariant, ProductImage,
     Cart, CartItem, Order, OrderItem, Tag, Payment,
-    PaymentHistory
+    PaymentHistory, ChatMessage
   ],
   subscribers: [],
   migrations: ["src/migrations/*.ts"],

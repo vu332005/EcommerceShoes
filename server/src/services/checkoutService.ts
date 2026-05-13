@@ -55,7 +55,7 @@ export const createOrderService = async (
   try {
     const orderItems: OrderItem[] = [];
     for (const item of cartItemsRedis) {
-      //  1: TÌM VÀ KHÓA DUY NHẤT BẢNG VARIANT
+      // 1: TÌM VÀ KHÓA DUY NHẤT BẢNG VARIANT
       const variantInfo = await queryRunner.manager.findOne(ProductVariant, {
         where: { id: item.variantId },
         lock: { mode: "pessimistic_write" }, // k đc để relations ở đây
@@ -72,7 +72,7 @@ export const createOrderService = async (
         );
       }
 
-      //  2: LẤY THÊM DỮ LIỆU PRODUCT & TAGS (Không dùng Lock)
+      // 2: LẤY THÊM DỮ LIỆU PRODUCT & TAGS (Không dùng Lock)
       const variantRelations = await queryRunner.manager.findOne(
         ProductVariant,
         {
@@ -85,7 +85,7 @@ export const createOrderService = async (
       variantInfo.stockQuantity -= item.quantity;
       await queryRunner.manager.save(variantInfo);
       variantsToInvalidateCache.push(variantInfo.id);
-      //  3: TÍNH TIỀN VÀ TẠO ORDER ITEM TỪ DỮ LIỆU ĐÃ NỐI
+      // 3: TÍNH TIỀN VÀ TẠO ORDER ITEM TỪ DỮ LIỆU ĐÃ NỐI
       const unitPrice = Number(
         variantInfo.priceOverride || variantRelations!.product.basePrice,
       );

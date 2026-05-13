@@ -1,4 +1,3 @@
-
 import { AppDataSource } from "../config/db";
 import { ProductVariant } from "../models/ProductVariant";
 import { AppError } from "../utils/AppError";
@@ -13,11 +12,11 @@ const TTL_PRODUCT_INFO = 60 * 60 * 24; // 1d
 const getCartKey = (userId: number) => `cart:${userId}`;
 const getProductKey = (variantId: number) => `product_info:${variantId}`;
 
-// // Lấy giỏ hàng (Redis + Hydrate Data từ DB) 
+// // Lấy giỏ hàng (Redis + Hydrate Data từ DB)
 // // redis lưu key: userid value: variantID quantity
 // // -> giúp lấy giỏ hàng nhanh (redis) - chính xác về giá cả/ tồn (postgresql) - lưu trữ dlieu nặng ở sql
 // /*
-// luồng : 
+// luồng :
 
 // */
 
@@ -40,11 +39,11 @@ export const getCartService = async (userId: number) => {
   const variantIds = cartItems.map((i) => i.variantId);
 
   // 2. Tạo danh sách key để MGET (Multi Get) từ Redis
-  const productKeys = variantIds.map(id => getProductKey(id));
-  
+  const productKeys = variantIds.map((id) => getProductKey(id));
+
   // 3. Lấy hàng loạt thông tin từ Redis
   const cachedProductsJson = await redis.mget(productKeys);
-  
+
   const variantsMap = new Map<number, any>();
   const missingIds: number[] = [];
 
@@ -62,37 +61,48 @@ export const getCartService = async (userId: number) => {
   if (missingIds.length > 0) {
     const dbVariants = await variantRepo.find({
       where: { id: In(missingIds) },
-      relations: ["product", "images", "tags"] // Join đầy đủ như cũ
+      relations: ["product", "images", "tags"], // Join đầy đủ như cũ
+      order: {
+        images: {
+          id: "ASC",
+        },
+      },
     });
 
     // 6. Lưu ngược những món vừa lấy được vào Redis (Pipeline để tối ưu mạng)
     if (dbVariants.length > 0) {
-        const pipeline = redis.pipeline();
-        
-        dbVariants.forEach(v => {
-            variantsMap.set(v.id, v); // Update Map để trả về cho user ngay
-            // Lưu vào Redis + TTL
-            pipeline.setex(getProductKey(v.id), TTL_PRODUCT_INFO, JSON.stringify(v));
-        });
-        
-        await pipeline.exec(); // Thực thi lưu cache
+      const pipeline = redis.pipeline();
+
+      dbVariants.forEach((v) => {
+        variantsMap.set(v.id, v); // Update Map để trả về cho user ngay
+        // Lưu vào Redis + TTL
+        pipeline.setex(
+          getProductKey(v.id),
+          TTL_PRODUCT_INFO,
+          JSON.stringify(v),
+        );
+      });
+
+      await pipeline.exec(); // Thực thi lưu cache
     }
   }
 
   // 7. Ghép dữ liệu (Hydrate)
-  const populatedItems = cartItems.map((item) => {
-    const variantInfo = variantsMap.get(item.variantId);
-    
-    // Trường hợp hiếm: Redis có ID trong cart, nhưng SQL đã xóa sản phẩm đó
-    if (!variantInfo) return null;
+  const populatedItems = cartItems
+    .map((item) => {
+      const variantInfo = variantsMap.get(item.variantId);
 
-    return {
-      id: `item_${item.variantId}`,
-      variantId: item.variantId,
-      quantity: item.quantity,
-      variant: variantInfo,
-    };
-  }).filter(Boolean);
+      // ít xảy ra -  Redis có ID trong cart, nhưng SQL đã xóa sản phẩm đó
+      if (!variantInfo) return null;
+
+      return {
+        id: `item_${item.variantId}`,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        variant: variantInfo,
+      };
+    })
+    .filter(Boolean);
 
   return {
     id: `redis_${userId}`,
@@ -101,7 +111,11 @@ export const getCartService = async (userId: number) => {
   };
 };
 
-export const addToCartService = async (userId: number, variantId: number, quantity: number) => {
+export const addToCartService = async (
+  userId: number,
+  variantId: number,
+  quantity: number,
+) => {
   // Check sản phẩm tồn tại (SQL)
   const variant = await variantRepo.findOneBy({ id: variantId });
   if (!variant) throw new AppError("Sản phẩm không tồn tại", 404);
@@ -120,11 +134,15 @@ export const addToCartService = async (userId: number, variantId: number, quanti
   return await getCartService(userId);
 };
 
-export const updateCartItemService = async (userId: number, itemId: number, quantity: number) => {
+export const updateCartItemService = async (
+  userId: number,
+  itemId: number,
+  quantity: number,
+) => {
   if (quantity <= 0) throw new AppError("Số lượng phải lớn hơn 0", 400);
 
   const key = getCartKey(userId);
-  const targetVariantId = itemId.toString(); 
+  const targetVariantId = itemId.toString();
 
   // Kiểm tra xem món này có trong giỏ không (HEXISTS)
   const exists = await redis.hexists(key, targetVariantId);
@@ -146,12 +164,11 @@ export const removeCartItemService = async (userId: number, itemId: number) => {
   // HDEL: Xóa field khỏi Hash
   await redis.hdel(key, targetVariantId);
 
-  // Reset TTL 
+  // Reset TTL
   await redis.expire(key, TTL_SECONDS);
 
   return await getCartService(userId);
 };
-
 
 // export const syncCartService = async (userId: number, items: { variantId: number, quantity: number }[]) => {
 //   if (!items || items.length === 0) return await getCartService(userId);

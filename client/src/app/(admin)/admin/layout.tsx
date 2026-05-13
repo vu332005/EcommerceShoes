@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Layout, Menu, ConfigProvider, Avatar, Button, Tooltip } from "antd";
-import { AppstoreOutlined, ShoppingOutlined } from "@ant-design/icons";
+import { AppstoreOutlined, ShoppingOutlined, MessageOutlined } from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
@@ -30,6 +30,12 @@ export default function AdminLayout({
       icon: <ShoppingOutlined />,
       label: "Đơn hàng",
       onClick: () => router.push("/admin/orders"),
+    },
+    {
+      key: "/admin/chat",
+      icon: <MessageOutlined />,
+      label: "Chat hỗ trợ",
+      onClick: () => router.push("/admin/chat"),
     },
   ];
 

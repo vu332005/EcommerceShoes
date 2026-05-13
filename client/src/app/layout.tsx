@@ -5,6 +5,7 @@ import { ReduxProvider } from "@/redux/provider";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
 import { Toaster } from "react-hot-toast"; // Thêm cái này để hiện thông báo toàn app
+import ChatWidget from "@/components/chat/ChatWidget";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,6 +33,9 @@ export default function RootLayout({
 
             <Footer />
           </div>
+
+          {/* Chat Widget - floating, hiện cho user đã đăng nhập */}
+          <ChatWidget />
         </ReduxProvider>
       </body>
     </html>
