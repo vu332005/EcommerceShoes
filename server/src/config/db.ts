@@ -48,10 +48,10 @@ export const AppDataSource = new DataSource({
   ],
   subscribers: [],
 
-  // Dev: dùng file .ts, Production: dùng file .js đã compile
-  migrations: process.env.NODE_ENV === "production"
-    ? ["dist/migrations/*.js"]
-    : ["src/migrations/*.ts"],
+  // Chỉ load files migration khi chạy lệnh typeorm CLI, tránh lỗi import lúc chạy server
+  migrations: process.argv.join(" ").includes("typeorm")
+    ? ["src/migrations/*.ts"]
+    : [],
 });
 
 export const connectDB = async () => {
