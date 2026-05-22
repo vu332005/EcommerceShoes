@@ -1,0 +1,99 @@
+# render.yaml — Infrastructure as Code cho Render.com
+# Đặt file này ở ROOT của repository (cùng cấp với /server và /client)
+#
+# Cách dùng:
+#   1. Push file này lên GitHub
+#   2. Vào Render Dashboard → New → Blueprint
+#   3. Chọn repo → Render tự đọc file này và tạo service
+
+services:
+  - type: web
+    name: ecommerce-shoes-api
+    runtime: node
+    region: singapore          # Gần Vietnam nhất
+
+    # Thư mục chứa backend
+    rootDir: server
+
+    # Lệnh build: cài deps + compile TypeScript
+    buildCommand: npm install && npm run build
+
+    # Lệnh chạy production server
+    startCommand: npm start     # → node dist/index.js
+
+    # Pre-deploy: chạy migration TRƯỚC khi server start
+    # Render sẽ chạy lệnh này sau build, trước startCommand
+    preDeployCommand: npm run migration:run
+
+    # Plan free tier (upgrade nếu cần)
+    plan: free
+
+    # Health check — dùng route "/" đã có sẵn
+    healthCheckPath: /
+
+    # Tự động deploy khi push code lên branch main
+    autoDeploy: true
+
+    # Biến môi trường — điền giá trị thật trong Render Dashboard
+    # KHÔNG hardcode secrets ở đây
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 4001
+
+      # Database (Supabase) — điền trong Render Dashboard
+      - key: DB_HOST
+        sync: false             # sync: false = phải nhập tay trong Dashboard
+
+      - key: DB_PORT
+        sync: false
+
+      - key: DB_USERNAME
+        sync: false
+
+      - key: DB_PASSWORD
+        sync: false
+
+      - key: DB_NAME
+        sync: false
+
+      # JWT
+      - key: JWT_SECRET
+        generateValue: true     # Render tự tạo random secret 🎉
+
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+      # Stripe (Test Mode)
+      - key: STRIPE_SECRET_KEY
+        sync: false
+
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # Facebook OAuth
+      - key: FACEBOOK_APP_ID
+        sync: false
+
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+
+      # Cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+
+      - key: CLOUDINARY_API_KEY
+        sync: false
+
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # Redis (Upstash)
+      - key: REDIS_URL
+        sync: false
+
+      # CORS — URL của Vercel frontend
+      - key: FRONTEND_URL
+        sync: false

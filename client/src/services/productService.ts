@@ -5,7 +5,7 @@ import { ProductParams, ProductResponse, Product } from "@/types/product";
 export const productService = {
 
 // USER
-  getProducts: async (params: ProductParams): Promise<ProductResponse> => {
+  getProducts: async (params: ProductParams): Promise<Product[]> => {
     try {
       const res = await axiosInstance.get("/product", { params });
       
@@ -40,7 +40,7 @@ export const productService = {
       return products;
     } catch (error) {
       console.error("Lỗi mapping sản phẩm:", error);
-      return [];
+      return [] as Product[];
     }
   },
 

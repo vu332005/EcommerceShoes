@@ -33,7 +33,9 @@ export async function middleware(request: NextRequest) {
     try {
       console.log("Middleware: Token hết hạn -> đang gọi refresh");
 
-      const res = await fetch(`http://localhost:4001/api/v1/auth/refresh`, {
+      // Dùng env var thay vì hardcode — bắt buộc trên production (Vercel)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4001/api/v1";
+      const res = await fetch(`${apiUrl}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),

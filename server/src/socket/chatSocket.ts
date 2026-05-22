@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { verifyToken } from "../utils/jwtHelper";
-import { saveMessage } from "../services/chatService";
+import { saveMessage, markAsRead, markAdminMessagesAsRead } from "../services/chatService";
 
 // Lưu map: userId -> Set<socketId> (user có thể mở nhiều tab)
 const onlineUsers = new Map<number, Set<string>>();
@@ -14,10 +14,13 @@ const ADMIN_ROOM = "admin_room";
 export const initChatSocket = (httpServer: HttpServer) => {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:3000",
+      // Production: dùng FRONTEND_URL | Dev: localhost:3000
+      origin: process.env.FRONTEND_URL || "http://localhost:3000",
       methods: ["GET", "POST"],
       credentials: true,
     },
+    // Render hỗ trợ WebSocket native — ưu tiên websocket, fallback sang polling
+    transports: ["websocket", "polling"],
     path: "/socket.io",
   });
 
@@ -41,6 +44,34 @@ export const initChatSocket = (httpServer: HttpServer) => {
   io.on("connection", (socket: Socket) => {
     const user = (socket as any).user as { id: number; role: string };
     console.log(`[Socket] ${user.role} #${user.id} connected: ${socket.id}`);
+
+    // Đăng ký sự kiện đánh dấu đã xem tin nhắn
+    socket.on(
+      "mark_messages_read",
+      async (data: { userId: number; readerRole: "user" | "admin" }) => {
+        try {
+          if (data.readerRole === "admin") {
+            await markAsRead(data.userId);
+          } else {
+            await markAdminMessagesAsRead(data.userId);
+          }
+
+          const payload = {
+            userId: data.userId,
+            readerRole: data.readerRole,
+          };
+
+          // Broadcast về phòng của user
+          const userRoom = `user_${data.userId}`;
+          io.to(userRoom).emit("messages_read", payload);
+
+          // Broadcast đến phòng của admin
+          io.to(ADMIN_ROOM).emit("messages_read", payload);
+        } catch (err) {
+          console.error("[Socket] mark_messages_read error:", err);
+        }
+      }
+    );
 
     // ADMIM
     if (user.role === "admin") {
@@ -137,6 +168,14 @@ export const initChatSocket = (httpServer: HttpServer) => {
             };
 
             // Echo lại cho chính user (confirm gửi thành công)
+            /*
+      - luồng lý do tại sao cần thêm sự kiện new_message cho chính mình
+      FE: User ấn gửi -> FE tạo một tin nhắn có cờ pending: true (hiển thị mờ mờ hoặc có chữ "Đang gửi...") -> Cập nhật lên UI ngay lập tức -> Bắn send_message lên server.
+      Server: Nhận lệnh -> Lưu DB mất ~100ms -> Bắn echo new_message về FE báo "Lưu xong rồi nhé!".
+      FE: Nhận được new_message -> Tìm cái tin nhắn pending hồi nãy -> Xóa chữ "Đang gửi...", cập nhật ID thật, đổi thành trạng thái "Đã gửi" (pending: false).
+      Nếu server không echo về, FE sẽ vĩnh viễn bị treo ở trạng thái pending: true (Đang gửi...).
+            */
+
             socket.emit("new_message", msgPayload);
 
             // Broadcast đến tất cả admin trong admin_room

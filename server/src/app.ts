@@ -7,8 +7,30 @@ import { stripeWebhook } from "./controllers/orderController";
 const app: Express = express();
 
 // 1. Middlewares
-app.use(helmet()); 
-app.use(cors()); 
+app.use(helmet());
+
+// CORS — Chỉ cho phép domain được cấu hình trong FRONTEND_URL
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+].filter(Boolean) as string[];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Cho phép request không có origin (Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked: ${origin}`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "stripe-signature"],
+  })
+);
 
 //  QUAN TRỌNG: Route Webhook Stripe phải đặt TRƯỚC express.json()
 /*
@@ -26,10 +48,13 @@ app.post(
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-app.use((req, res, next) => {
-    console.log(`[DEBUG] Request đến: ${req.method} ${req.url}`);
+// Debug middleware — chỉ chạy khi không ở môi trường production
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    console.log(`[DEBUG] ${req.method} ${req.url}`);
     next();
-});
+  });
+}
 
 // 2. Routes
 app.use("/api/v1", rootRouter);
@@ -52,10 +77,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
         });
     }
 
+    // Production: KHÔNG trả stack trace ra client để tránh lộ thông tin hệ thống
     return res.status(500).json({
         status: "error",
-        message: err.message, 
-        stack: err.stack      
+        message: process.env.NODE_ENV === "production"
+          ? "Internal Server Error"
+          : err.message,
+        ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
     });
 });
 

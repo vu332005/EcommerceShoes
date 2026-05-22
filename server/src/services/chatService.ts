@@ -47,6 +47,14 @@ export const markAsRead = async (userId: number): Promise<void> => {
   );
 };
 
+// Đánh dấu tất cả tin nhắn của admin gửi cho user này là đã đọc (khi user mở chat)
+export const markAdminMessagesAsRead = async (userId: number): Promise<void> => {
+  await chatRepo.update(
+    { userId, senderRole: "admin", isRead: false },
+    { isRead: true },
+  );
+};
+
 // Lấy danh sách user đã nhắn tin (dùng cho admin sidebar)
 // Trả về: thông tin user + tin nhắn cuối + số tin chưa đọc
 export const getConversationList = async () => {

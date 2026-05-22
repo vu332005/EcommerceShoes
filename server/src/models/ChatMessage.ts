@@ -28,7 +28,7 @@ export class ChatMessage {
   @Column({ name: "sender_role", length: 10 })
   senderRole!: "user" | "admin";
 
-  // ID của người gửi (userId nếu user, adminId nếu admin)
+  // ID của người gửi (if msg is sended by user -> senderId is userId , if msg is sended by admin -> senderId is adminId)
   @Column({ name: "sender_id" })
   senderId!: number;
 
@@ -42,3 +42,10 @@ export class ChatMessage {
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 }
+/**
+Tóm lại cách hoạt động:
+Khi một User có ID là 5 vào chat với nội dung "Cho mình hỏi giá", bảng sẽ lưu một dòng với user_id = 5, senderRole = 'user', senderId = 5.
+Khi Admin có ID là 99 vào trả lời "Giá là 100k bạn nhé"
+->  bảng sẽ lưu một dòng mới vẫn có user_id = 5 (vì tin nhắn này nằm trong phòng chat của User 5), nhưng senderRole = 'admin' và senderId = 99.
+ 
+*/

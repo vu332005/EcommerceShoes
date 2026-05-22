@@ -28,12 +28,18 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || "123456",
   database: process.env.DB_NAME || "shoes_shop_db",
 
-  // QUAN TRỌNG: 
-  // Vì bạn đã tạo bảng bằng tay bằng SQL, nên hãy set synchronize = false 
-  // để tránh TypeORM tự ý sửa đổi cấu trúc bảng của bạn.
+  // Bắt buộc cho Supabase — kết nối SSL
+  ssl: process.env.NODE_ENV === "production"
+    ? { rejectUnauthorized: false }
+    : false,
+
+  // QUAN TRỌNG: synchronize = false trên production,
+  // dùng migrations để quản lý schema an toàn
   synchronize: false,
 
-  logging: false,
+  // Chỉ log queries trong môi trường development
+  logging: process.env.NODE_ENV !== "production",
+
   entities: [
     User, Address, Category,
     Product, ProductVariant, ProductImage,
@@ -41,7 +47,11 @@ export const AppDataSource = new DataSource({
     PaymentHistory, ChatMessage
   ],
   subscribers: [],
-  migrations: ["src/migrations/*.ts"],
+
+  // Dev: dùng file .ts, Production: dùng file .js đã compile
+  migrations: process.env.NODE_ENV === "production"
+    ? ["dist/migrations/*.js"]
+    : ["src/migrations/*.ts"],
 });
 
 export const connectDB = async () => {

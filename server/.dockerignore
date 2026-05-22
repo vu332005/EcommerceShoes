@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output (sẽ được tạo trong container)
+dist/
+
+# Environment variables (KHÔNG bao giờ đưa vào image)
+.env
+.env.*
+
+# Development files
+*.log
+npm-debug.log*
+
+# Stripe CLI binary (không cần trong container)
+stripe.exe
+*.exe
+
+# Source TypeScript (đã compile xong rồi, không cần thiết)
+src/
+
+# Local data files
+*.txt
+changePlan/

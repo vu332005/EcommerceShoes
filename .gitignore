@@ -9,6 +9,7 @@ yarn-debug.log*
 # Chặn folder dữ liệu Postgres ở root
 /postgres_data/
 /data_fresh_v2/
+/redis_data/
 
 # --- 3. Environment Variables (BẢO MẬT) ---
 # Chặn tất cả file .env ở bất kỳ thư mục nào (root, server, client)
@@ -31,14 +32,26 @@ build/
 coverage/
 
 # --- 6. Các file rác/nháp cụ thể trong dự án của bạn ---
-# Các file txt ghi chú
+# Các file txt ghi chú (local notes - không cần thiết trên remote)
 note.txt
 stripe.txt
 typeOrm.txt
+kienthuc.txt
+noteErr.txt
+redis.txt
+ggLogin.txt
+migration.txt
+middlewareNextJs.txt
+cdn.txt
+flowCartRedis
+backupCart-Checkout.txt
 
 # File thực thi (như stripe.exe)
 *.exe
 stripe.exe
 
+# Thư mục kế hoạch local
+changePlan/
+
 # File tạm
-*.tmp
+*.tmp

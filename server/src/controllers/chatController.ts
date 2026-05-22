@@ -4,6 +4,7 @@ import {
   getMessagesByUser,
   getConversationList,
   markAsRead,
+  markAdminMessagesAsRead,
 } from "../services/chatService";
 
 // lấy lịch sử tin nhắn -> User chỉ xem được lịch sử của chính mình, admin xem được tất cả
@@ -28,9 +29,12 @@ export const getChatHistory = async (
 
     const messages = await getMessagesByUser(targetUserId);
 
-    // Nếu admin vào xem -> đánh dấu đã đọc
+    // Nếu admin vào xem -> đánh dấu tin nhắn của user là đã đọc
     if (authReq.user.role === "admin") {
       await markAsRead(targetUserId);
+    } else {
+      // Nếu user vào xem -> đánh dấu tin nhắn của admin là đã đọc
+      await markAdminMessagesAsRead(targetUserId);
     }
 
     return res.json({ messages });

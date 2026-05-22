@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import { Carousel, ConfigProvider } from "antd";
+import type { CarouselRef } from "antd/es/carousel";
 import Image from "next/image";
 import Link from "next/link";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
@@ -28,7 +29,7 @@ const SLIDE_IMAGES = [
 ];
 
 export default function Banner() {
-  const carouselRef = useRef(null);
+  const carouselRef = useRef<CarouselRef>(null);
 
   const handlePrev = () => carouselRef.current?.prev();
   const handleNext = () => carouselRef.current?.next();
